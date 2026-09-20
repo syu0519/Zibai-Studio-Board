@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>茲白虛擬棚 · 留言板原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Huninn&family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1c2622; --paper:#eef1e8; --paper2:#e2e7db; --line:#c9d0c2;
+  --red:#e8433a; --yellow:#f3b833; --green:#33b870;
+  --amber:#e9a23b; --emerald:#19a078; --tape:#f08a24;
+  --ui:"Huninn","PingFang TC","Microsoft JhengHei",sans-serif;
+  --hand:"LXGW WenKai TC","Kaiti TC","DFKai-SB",serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0;background:#242c2a;overflow:hidden;font-family:var(--ui);color:var(--ink)}
+canvas#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+/* 控台膠帶風格的標籤 */
+.tape{background:var(--paper);color:var(--ink);border-radius:3px;padding:6px 11px;
+  box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 3px 10px rgba(0,0,0,.35);font-family:var(--hand);font-weight:700}
+#hud{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px;pointer-events:none;z-index:5}
+#hud>*{pointer-events:auto}
+#brand{transform:rotate(-1.2deg);font-size:19px;line-height:1.1}
+#brand small{display:block;font-size:12px;font-weight:400;opacity:.7;margin-top:2px}
+#who{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+#bind{font-size:13px;display:flex;align-items:center;gap:6px;transform:rotate(.8deg)}
+#bind i{width:8px;height:8px;border-radius:50%;background:#06c755;display:inline-block}
+#roleBtn{border:0;font-size:12px;background:rgba(238,241,232,.18);color:var(--paper);border-radius:999px;padding:5px 10px;backdrop-filter:blur(6px)}
+#roleBtn[aria-pressed=true]{background:var(--amber);color:var(--ink)}
+
+#filters{position:fixed;left:12px;top:calc(env(safe-area-inset-top,0px) + 70px);display:flex;flex-direction:column;gap:6px;z-index:5}
+.chip{border:0;display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 10px 6px 8px;border-radius:999px;background:rgba(20,26,24,.62);color:var(--paper);backdrop-filter:blur(6px)}
+.chip[aria-pressed=false]{opacity:.45}
+.chip .ico{width:14px;height:14px;display:inline-block}
+.ico.dot{border-radius:50%;background:radial-gradient(circle,#fff 0 20%,var(--amber) 45%,transparent 72%)}
+.ico.note{background:#ffe27a;transform:rotate(-6deg);border-radius:1px}
+.ico.slate{background:repeating-linear-gradient(135deg,#fff 0 3px,#222 3px 6px);border-radius:1px}
+.chip b{font-weight:400;opacity:.75}
+.chip .red{color:#ff8e86}
+
+#dock{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;justify-content:space-between;align-items:flex-end;padding:0 12px;z-index:5;pointer-events:none}
+#dock>*{pointer-events:auto}
+#shots{display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 110px)}
+#shots button{border:0;background:rgba(20,26,24,.62);color:var(--paper);padding:8px 12px;border-radius:8px;font-size:14px;backdrop-filter:blur(6px)}
+#shots button[aria-current=true]{background:var(--paper);color:var(--ink)}
+#postBtn{border:0;width:78px;height:78px;border-radius:50%;background:var(--emerald);color:#fff;font-size:17px;
+  box-shadow:0 0 0 5px rgba(25,160,120,.25),0 8px 22px rgba(0,0,0,.4)}
+
+#caption{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:translateX(-50%);max-width:min(88vw,460px);
+  text-align:center;font-family:var(--hand);font-size:17px;color:var(--paper);text-shadow:0 2px 8px rgba(0,0,0,.8);opacity:0;transition:opacity .6s;pointer-events:none;z-index:4}
+#caption.on{opacity:1}
+
+/* 走近才出現的短文字 */
+#labels{position:fixed;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.lb{position:absolute;left:0;top:0;transform-origin:0 100%;max-width:190px;padding:5px 9px;border-radius:10px 10px 10px 2px;
+  background:rgba(238,241,232,.92);font-family:var(--hand);font-size:14px;line-height:1.35;pointer-events:auto;cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);transition:opacity .25s;will-change:transform}
+.lb b{display:block;font-family:var(--ui);font-weight:400;font-size:11px;opacity:.6}
+.lb i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:5px;vertical-align:1px}
+
+/* 討論串面板：像一張棚內記錄單 */
+#panel{position:fixed;z-index:10;background:var(--paper);display:flex;flex-direction:column;
+  right:0;top:0;bottom:0;width:min(420px,100vw);transform:translateX(105%);transition:transform .38s cubic-bezier(.2,.8,.2,1);
+  box-shadow:-10px 0 30px rgba(0,0,0,.35);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#panel.open{transform:none}
+@media (max-width:640px){
+  #panel{top:auto;left:0;width:100%;height:74vh;border-radius:16px 16px 0 0;transform:translateY(105%)}
+  #panel.open{transform:none}
+  #filters{top:calc(env(safe-area-inset-top,0px) + 64px)}
+}
+#panel header{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px dashed var(--line)}
+#panel .kind{font-size:17px}
+#panel .close{margin-left:auto;border:0;background:var(--paper2);width:34px;height:34px;border-radius:50%;font-size:18px}
+.tally{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 9px 3px 7px;border-radius:999px;background:var(--paper2)}
+.tally::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.tally.red{--c:var(--red)}.tally.yellow{--c:var(--yellow)}.tally.green{--c:var(--green)}
+#thread{flex:1;overflow-y:auto;padding:14px 16px 8px}
+.msg{margin:0 0 14px;max-width:92%}
+.msg .meta{font-size:12px;opacity:.6;margin-bottom:3px;display:flex;gap:8px;align-items:center}
+.msg .body{font-family:var(--hand);font-size:17px;line-height:1.55;padding:9px 12px;border-radius:4px 12px 12px 12px;background:#fff}
+.msg.origin .body{font-size:19px;background:transparent;padding:0 0 10px;border-bottom:1px dashed var(--line);border-radius:0}
+.msg.zibai .body{background:#fbefd9;border-left:3px solid var(--amber)}
+.msg.teacher .body{background:#dff0e8;border-left:3px solid var(--emerald)}
+.msg.me{margin-left:auto}.msg.me .body{background:#e3e9f7;border-radius:12px 4px 12px 12px}
+.msg.system{max-width:100%;text-align:center;font-size:12px;opacity:.65}
+.av{width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;color:#fff;background:#7c8a84}
+.av.z{background:var(--amber)}.av.t{background:var(--emerald)}
+.vis{font-size:11px;padding:1px 6px;border-radius:4px;background:var(--paper2)}
+#panelFoot{padding:10px 16px 14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:8px}
+.row textarea{flex:1;resize:none;height:44px;border:1px solid var(--line);border-radius:10px;padding:10px;font:16px var(--hand);background:#fff}
+.btn{border:0;border-radius:10px;padding:0 14px;min-height:44px;background:var(--ink);color:var(--paper);font-size:15px}
+.btn.alt{background:var(--green);color:#fff}
+.btn.amber{background:var(--amber);color:var(--ink)}
+.hint{font-size:12px;opacity:.6;margin:0}
+
+/* 發文 */
+#compose{position:fixed;inset:0;z-index:12;display:none;align-items:flex-end;justify-content:center;background:rgba(10,14,12,.45)}
+#compose.open{display:flex}
+#sheet{background:var(--paper);width:min(520px,100vw);border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
+  animation:up .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(40%);opacity:0}}
+#sheet h2{margin:0 0 12px;font-size:20px;font-weight:400}
+.types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.types button{border:2px solid transparent;background:#fff;border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:14px}
+.types button[aria-checked=true]{border-color:var(--ink)}
+.types .ico{width:22px;height:22px}
+.moods{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.moods button{border:0;border-radius:999px;padding:5px 11px 5px 7px;background:#fff;font-size:14px;display:flex;gap:6px;align-items:center}
+.moods button::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--c)}
+.moods button[aria-checked=true]{background:var(--ink);color:var(--paper)}
+#txt{width:100%;height:92px;resize:none;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:18px/1.5 var(--hand);background:#fff}
+.count{text-align:right;font-size:12px;opacity:.55;margin:2px 0 8px}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.seg{display:flex;background:#fff;border-radius:10px;padding:3px}
+.seg button{flex:1;border:0;background:none;border-radius:8px;padding:8px 4px;font-size:13px}
+.seg button[aria-checked=true]{background:var(--paper2)}
+.consent{font-size:12px;opacity:.65;margin:0 0 12px;line-height:1.5}
+.sheetBtns{display:flex;gap:8px}.sheetBtns .btn{flex:1}
+.sheetBtns .ghost{background:var(--paper2);color:var(--ink);flex:0 0 90px}
+
+#splash{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,rgba(36,44,42,.55),rgba(14,18,16,.92));transition:opacity .7s}
+#splash.gone{opacity:0;pointer-events:none}
+#card{background:var(--paper);width:min(360px,86vw);padding:22px 22px 18px;border-radius:6px;transform:rotate(-.6deg);box-shadow:0 18px 50px rgba(0,0,0,.5)}
+#card h1{margin:0 0 4px;font-weight:400;font-size:26px}
+#card .sub{margin:0 0 14px;font-size:13px;opacity:.6}
+#card p{font-family:var(--hand);font-size:16px;line-height:1.6;margin:0 0 10px}
+#card .fine{font-family:var(--ui);font-size:12px;opacity:.6}
+#enter{width:100%;margin-top:8px;background:var(--emerald);color:#fff}
+#loadState{font-size:12px;opacity:.6;margin-top:8px;text-align:center}
+
+/* 茲白說話泡泡 */
+#bubble{position:fixed;left:0;top:0;z-index:4;max-width:220px;padding:8px 12px;border-radius:14px 14px 14px 3px;background:#fbefd9;
+  border:2px solid var(--amber);font-family:var(--hand);font-size:16px;line-height:1.45;color:var(--ink);pointer-events:none;
+  opacity:0;transition:opacity .25s;box-shadow:0 6px 16px rgba(0,0,0,.35)}
+#bubble.on{opacity:1}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 16px);transform:translate(-50%,-200%);visibility:hidden;z-index:30;transition:transform .35s,visibility .35s}
+#toast.on{transform:translate(-50%,0);visibility:visible}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/",
+  "@pixiv/three-vrm":"https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.5.5/lib/three-vrm.module.min.js",
+  "@pixiv/three-vrm-animation":"https://cdn.jsdelivr.net/npm/@pixiv/three-vrm-animation@3.5.5/lib/three-vrm-animation.module.min.js"
+}}
+</script>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="labels"></div>
+
+<div id="hud">
+  <div id="brand" class="tape">茲白虛擬棚<small>SYB201 大綠棚 · 留言板</small></div>
+  <div id="who">
+    <div id="bind" class="tape"><i></i>LINE 已綁定 · <span id="meName"></span></div>
+    <button id="roleBtn" aria-pressed="false">切到老師視角</button>
+  </div>
+</div>
+
+<div id="filters">
+  <button class="chip" data-f="mood" aria-pressed="true"><span class="ico dot"></span>心情光點 <b id="cMood"></b></button>
+  <button class="chip" data-f="learn" aria-pressed="true"><span class="ico note"></span>學習便利貼 <b id="cLearn"></b></button>
+  <button class="chip" data-f="question" aria-pressed="true"><span class="ico slate"></span>問題場記板 <b id="cQ"></b></button>
+</div>
+
+<div id="caption"></div>
+
+<div id="dock">
+  <div id="shots">
+    <button data-shot="wide" aria-current="true">全景</button>
+    <button data-shot="zibai">茲白</button>
+    <button data-shot="wall">學習牆</button>
+    <button data-shot="slates">場記區</button>
+  </div>
+  <button id="postBtn">留言</button>
+</div>
+
+<aside id="panel" aria-hidden="true">
+  <header><span class="kind" id="pKind"></span><span id="pTally"></span><button class="close" id="pClose" aria-label="關閉">×</button></header>
+  <div id="thread"></div>
+  <div id="panelFoot"></div>
+</aside>
+
+<div id="compose">
+  <div id="sheet" role="dialog" aria-label="留言">
+    <h2>在棚裡留下點什麼</h2>
+    <div class="types" role="radiogroup">
+      <button data-t="mood" role="radio" aria-checked="true"><span class="ico dot"></span>心情光點</button>
+      <button data-t="learn" role="radio" aria-checked="false"><span class="ico note"></span>學到什麼</button>
+      <button data-t="question" role="radio" aria-checked="false"><span class="ico slate"></span>問個問題</button>
+    </div>
+    <div class="moods" id="moodPick" role="radiogroup"></div>
+    <textarea id="txt" maxlength="40" placeholder="今天的心情是…"></textarea>
+    <div class="count" id="count">0 / 40</div>
+    <div class="toggles">
+      <div class="seg" id="segName" role="radiogroup"><button role="radio" aria-checked="true" data-v="nick"></button><button role="radio" aria-checked="false" data-v="anon">匿名</button></div>
+      <div class="seg" id="segVis" role="radiogroup"><button role="radio" aria-checked="true" data-v="public">大家看得到</button><button role="radio" aria-checked="false" data-v="teacher">只給老師看</button></div>
+    </div>
+    <p class="consent">留言會依你在茲白那邊的研究同意設定處理，隨時可以跟茲白說要退出。</p>
+    <div class="sheetBtns"><button class="btn ghost" id="cancel">取消</button><button class="btn" id="submit">放出光點</button></div>
+  </div>
+</div>
+
+<div id="splash">
+  <div id="card">
+    <h1>茲白虛擬棚</h1>
+    <p class="sub">SYB201 大綠棚的線上分身</p>
+    <p>嗨，我是茲白！這裡可以留心情、貼今天學到的東西，也可以把問題立成場記板給我跟阿祥老師看。</p>
+    <p class="fine">第一次進棚會把這個 LINE 帳號綁到你的社員身分，老師回覆你的問題時，我才能在 LINE 通知你。</p>
+    <button class="btn" id="enter" disabled>正在搭棚…</button>
+    <div id="loadState">載入攝影棚</div>
+  </div>
+</div>
+<div id="toast" class="tape"></div>
+<div id="bubble"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {VRMLoaderPlugin, VRMUtils} from '@pixiv/three-vrm';
+import {VRMAnimationLoaderPlugin} from '@pixiv/three-vrm-animation';
+import {createActor} from './zibai-actor.js';
+import {loadBehavior, migrate, STORE_KEY, BUS_NAME, motionsDB, layoutFor, makeLayout, slateSpot, WALL_SIZE} from './zibai-behavior.js';
+import {listScenes, loadScenePack} from './scene-host.js';
+
+/* ───────── 設定 ───────── */
+const qs = new URLSearchParams(location.search);
+const STAGE = new THREE.Vector3(0, 0, -4.8);           // 茲白的家，載入場景後依互動配置更新
+const DIRECTOR = qs.has('director');                   // 導演台開的預覽視窗
+const ME = {nick: '綠幕小羊'};                        // 之後由 LIFF profile + 綁定結果帶入
+const MOODS = {
+  happy:{name:'開心',hex:'#ffc94a'}, hype:{name:'興奮',hex:'#ff7fa3'}, calm:{name:'平靜',hex:'#63d9c4'},
+  tired:{name:'好累',hex:'#7d9cff'}, stuck:{name:'卡關',hex:'#ff8b3d'}, nervous:{name:'緊張',hex:'#b58cff'},
+};
+const STATUS = {red:'等老師', yellow:'已回覆', green:'已解決'};
+const TALLY_HEX = {red:0xff3a2e, yellow:0xffb81f, green:0x2ee07a};
+const LIMIT = {mood:40, learn:60, question:120};
+
+/* ───────── 假資料（之後換成 API） ───────── */
+let seq = 0;
+let qseq = 0;
+const it = (o) => ({id:'m'+(++seq), anon:false, vis:'public', thread:[], ...o, ...(o.type === 'question' ? {qn:++qseq} : {})});
+const qLabel = (d) => 'Q-' + String(d.qn).padStart(2, '0');
+const DATA = [
+  it({type:'mood', mood:'happy', nick:'綠幕小羊', mine:true, text:'第一次把 V皮丟進 Pocket VP 就動起來了！', t:'9/19 21:40'}),
+  it({type:'mood', mood:'tired', anon:true, text:'剪片剪到三點，社課會準時出現', t:'9/19 03:12'}),
+  it({type:'mood', mood:'calm', nick:'豆腐', text:'下雨天在社辦聽大家吵燈光', t:'9/18 16:05'}),
+  it({type:'mood', mood:'stuck', anon:true, text:'LiveLink 一直連不上，心好累', t:'9/18 23:30'}),
+  it({type:'mood', mood:'hype', nick:'Mika', text:'下週要進大綠棚拍了！！', t:'9/18 12:10'}),
+  it({type:'mood', mood:'nervous', anon:true, vis:'teacher', text:'期中發表要站在綠幕前講話，有點怕', t:'9/17 22:48'}),
+  it({type:'mood', mood:'happy', nick:'阿哲', text:'搖臂推起來超順', t:'9/17 15:20'}),
+  it({type:'mood', mood:'calm', anon:true, text:'今天只是想來看看茲白', t:'9/17 11:02'}),
+  it({type:'mood', mood:'tired', nick:'小瑜', text:'三堂課連上，腦袋空空', t:'9/16 17:45'}),
+  it({type:'mood', mood:'hype', anon:true, text:'Orbiter 打起來好美', t:'9/16 14:33'}),
+  it({type:'mood', mood:'happy', nick:'Amy', text:'茲白今天有認出我', t:'9/16 10:08'}),
+  it({type:'mood', mood:'calm', nick:'阿哲', text:'把線材收好的感覺很療癒', t:'9/15 20:14'}),
+
+  it({type:'learn', nick:'阿哲', text:'人離綠幕拉開兩公尺以上，溢色少很多', t:'9/19 18:02', paper:'#ffe27a'}),
+  it({type:'learn', anon:true, text:'Exposure 先固定再調燈，不然越調越亂', t:'9/19 13:40', paper:'#ffb3c7'}),
+  it({type:'learn', nick:'小瑜', text:'VRM 進場景前先確認是 A-pose 還是 T-pose', t:'9/18 21:22', paper:'#b8ecd9'}),
+  it({type:'learn', nick:'Mika', text:'SkyPanel 可以直接調色溫，不用貼色紙', t:'9/18 15:11', paper:'#c7d6ff'}),
+  it({type:'learn', anon:true, text:'Tally 紅燈那台是正在播的，看鏡頭要看紅燈', t:'9/17 19:50', paper:'#ffe27a'}),
+  it({type:'learn', nick:'豆腐', text:'UE 4.27 的 LiveLink 外掛開完要重啟', t:'9/17 13:26', paper:'#ffd39a'}),
+  it({type:'learn', nick:'綠幕小羊', mine:true, text:'追蹤點不能被擋住，不然畫面會飄', t:'9/16 22:03', paper:'#b8ecd9'}),
+  it({type:'learn', anon:true, text:'頭髮邊緣的綠邊可以用 Despill 救', t:'9/15 16:47', paper:'#ffb3c7'}),
+
+  it({type:'question', anon:true, status:'red', text:'Stype 追蹤的開機順序是什麼？每次都要重來好幾次', t:'9/19 20:31',
+    thread:[{who:'zibai', text:'這題跟棚內設備的實際設定有關，我怕講錯，已經請阿祥老師來看了。老師回覆後我會在 LINE 跟你說！', t:'9/19 20:31'}]}),
+  it({type:'question', nick:'小瑜', vis:'teacher', status:'red', text:'下週社課可能要請假，想私下跟老師說明原因', t:'9/19 09:15',
+    thread:[{who:'zibai', text:'收到，這只有老師看得到，我幫你轉過去了。', t:'9/19 09:15'}]}),
+  it({type:'question', nick:'綠幕小羊', mine:true, status:'red', text:'即時合成課的作業可以用自己的 V皮嗎？', t:'9/18 22:40',
+    thread:[{who:'zibai', text:'作業規定要以老師說的為準，我已經轉給阿祥老師了，有答案馬上跟你說～', t:'9/18 22:40'}]}),
+  it({type:'question', nick:'阿哲', status:'yellow', text:'Pocket VP 裡 VRM 的腳為什麼會陷進地板？', t:'9/18 14:02',
+    thread:[{who:'zibai', text:'通常是模型原點不在腳底。先在 Studio 把表演者的高度往上調一點看看，不行的話回 VRoid 檢查匯出設定。', t:'9/18 14:03'}]}),
+  it({type:'question', nick:'Mika', status:'yellow', text:'UE 裡綠幕去背用 Composure 要從哪裡開始設？', t:'9/17 21:10',
+    thread:[{who:'zibai', text:'這個我想請老師補充，先幫你轉過去囉！', t:'9/17 21:10'},
+            {who:'teacher', text:'社課會現場示範，先看 eeclass 上〈unreal engine 4.27 & Stypeland〉那篇。', t:'9/18 08:30'},
+            {who:'system', text:'茲白已用 LINE 通知 Mika', t:'9/18 08:30'}]}),
+  it({type:'question', anon:true, status:'green', text:'CorridorKey 的 OBS 外掛要去哪裡下載？', t:'9/16 19:22',
+    thread:[{who:'zibai', text:'在社團的 GitHub 頁面，我把連結傳到你的 LINE 了！', t:'9/16 19:23'},
+            {who:'student', text:'裝好了，謝謝茲白', t:'9/16 20:01'}]}),
+  it({type:'question', nick:'豆腐', status:'green', text:'Pocket VP 可以在手機上跑嗎？', t:'9/15 12:44',
+    thread:[{who:'zibai', text:'可以開，效能設定選低一點會比較順。', t:'9/15 12:45'}]}),
+];
+
+/* ───────── 狀態 ───────── */
+const state = {role:'student', filters:{mood:true, learn:true, question:true}, selected:null, entered:false, clock:0};
+const $ = (s) => document.querySelector(s);
+const canSeeText = (d) => d.vis === 'public' || d.mine || state.role === 'teacher';
+const who = (d) => d.anon ? '匿名' : d.nick;
+
+/* ───────── three.js 基本 ───────── */
+const canvas = $('#stage');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#242c2a');
+scene.fog = new THREE.FogExp2('#29352f', 0.012);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.12;
+
+const camera = new THREE.PerspectiveCamera(58, 1, 0.05, 160);
+camera.position.set(0, 3.4, 10.2);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 1.5, -4.2);
+controls.enableDamping = true;
+controls.minDistance = 0.9; controls.maxDistance = 15;
+controls.maxPolarAngle = Math.PI * 0.53;
+controls.enabled = false;
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.4, 0.5, 0.95);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); composer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.fov = w < h ? 68 : 58;           // 手機直式看寬一點
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+/* ───────── 貼圖工具 ───────── */
+const fontsReady = (text) => Promise.all([
+  document.fonts.load('40px "LXGW WenKai TC"', text), document.fonts.load('700 40px "LXGW WenKai TC"', text), document.fonts.load('30px "Huninn"', text),
+]).catch(() => {});
+function canvasTex(w, h, draw){
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+function wrap(ctx, text, maxW, maxLines){
+  const lines = []; let line = '';
+  for (const ch of text){
+    if (ctx.measureText(line + ch).width > maxW && line){ lines.push(line); line = ch; } else line += ch;
+  }
+  if (line) lines.push(line);
+  if (lines.length > maxLines){ lines.length = maxLines; lines[maxLines-1] = lines[maxLines-1].slice(0, -1) + '…'; }
+  return lines;
+}
+function lockIcon(ctx, x, y, s, color){
+  ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = s * .14;
+  ctx.beginPath(); ctx.arc(x, y - s*.18, s*.26, Math.PI, 0); ctx.stroke();
+  ctx.fillRect(x - s*.38, y - s*.18, s*.76, s*.56); ctx.restore();
+}
+const GLOW = canvasTex(128, 128, (c, w) => {
+  const g = c.createRadialGradient(w/2, w/2, 0, w/2, w/2, w/2);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.25, 'rgba(255,255,255,.55)');
+  g.addColorStop(.6, 'rgba(255,255,255,.12)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = g; c.fillRect(0, 0, w, w);
+});
+const STRIPES = canvasTex(256, 32, (c, w, h) => {
+  c.fillStyle = '#111'; c.fillRect(0, 0, w, h); c.fillStyle = '#f2f2ee';
+  for (let x = -h; x < w; x += 36){ c.beginPath(); c.moveTo(x, h); c.lineTo(x + 18, h); c.lineTo(x + 18 + h, 0); c.lineTo(x + h, 0); c.fill(); }
+});
+const RING = canvasTex(128, 128, (c, w) => {
+  c.strokeStyle = '#fff'; c.lineWidth = 6; c.setLineDash([14, 10]);
+  c.beginPath(); c.arc(w/2, w/2, w/2 - 8, 0, Math.PI*2); c.stroke();
+});
+
+function noteTexture(d){
+  return canvasTex(512, 460, (c, w, h) => {
+    const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, d.paper); g.addColorStop(1, shade(d.paper, -.08));
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(255,255,255,.55)'; c.save(); c.translate(w/2, 14); c.rotate(-.04); c.fillRect(-90, -16, 180, 36); c.restore();
+    c.fillStyle = '#2a2a24';
+    if (!canSeeText(d)){
+      lockIcon(c, w/2, h/2 - 20, 80, 'rgba(40,40,36,.55)');
+      c.font = '700 38px "LXGW WenKai TC", serif'; c.textAlign = 'center'; c.fillText('只給老師看', w/2, h/2 + 70); return;
+    }
+    c.font = '700 58px "LXGW WenKai TC", serif';
+    wrap(c, d.text, w - 64, 4).forEach((l, i) => c.fillText(l, 32, 108 + i * 72));
+    c.font = '30px "LXGW WenKai TC", serif'; c.globalAlpha = .6; c.textAlign = 'right';
+    c.fillText('— ' + who(d) + (d.vis === 'teacher' ? '（私）' : ''), w - 32, h - 28);
+  });
+}
+function slateTexture(d){
+  return canvasTex(640, 470, (c, w, h) => {
+    c.fillStyle = '#1a1e1c'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = 'rgba(240,240,232,.8)'; c.lineWidth = 4; c.strokeRect(14, 14, w - 28, h - 28);
+    c.beginPath(); c.moveTo(14, 96); c.lineTo(w - 14, 96); c.moveTo(w * .42, 14); c.lineTo(w * .42, 96);
+    c.moveTo(14, h - 80); c.lineTo(w - 14, h - 80); c.stroke();
+    c.fillStyle = '#f0f0e8'; c.font = '26px "Huninn", sans-serif';
+    c.globalAlpha = .6; c.fillText('問題', 30, 50); c.fillText('發問', w * .42 + 16, 50); c.globalAlpha = 1;
+    c.font = '700 36px "LXGW WenKai TC", serif';
+    c.fillText(qLabel(d), 30, 86);
+    c.fillText(who(d), w * .42 + 16, 86);
+    if (!canSeeText(d)){
+      lockIcon(c, w/2, 236, 70, 'rgba(240,240,232,.6)');
+      c.font = '700 36px "LXGW WenKai TC", serif'; c.textAlign = 'center'; c.fillText('只給老師看', w/2, 320);
+    } else {
+      c.font = '700 50px "LXGW WenKai TC", serif';
+      wrap(c, d.text, w - 64, 4).forEach((l, i) => c.fillText(l, 32, 162 + i * 62));
+    }
+    c.textAlign = 'left'; c.font = '24px "Huninn", sans-serif'; c.globalAlpha = .55;
+    c.fillText(d.t, 30, h - 36);
+  });
+}
+function shade(hex, k){ const c = new THREE.Color(hex); c.offsetHSL(0, 0, k); return '#' + c.getHexString(); }
+
+/* ───────── 攝影棚 ───────── */
+let studio = null, scenePack = null, sceneId = null;
+let sceneBounds = {minX:-12, maxX:12, minZ:-12, maxZ:12, maxY:9};
+async function loadSceneLayer(wanted){
+  const list = await listScenes();
+  const entry = list.find(x => x.id === wanted) || list[0];
+  if (!entry) throw Error('scenes/ 資料夾裡沒有場景包');
+  const pack = await loadScenePack(entry.path);
+  if (scenePack){ scene.remove(scenePack.inst.root); scenePack.dispose(); }
+  scenePack = pack; studio = pack.inst; sceneId = pack.manifest.id || entry.id;
+  studio.root.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
+  scene.add(studio.root);
+  const m = pack.manifest;
+  scene.background = new THREE.Color(m.background || '#242c2a');
+  scene.fog = new THREE.FogExp2(m.fogColor || m.background || '#29352f', 0.012);
+  const b = pack.meta.bounds;
+  sceneBounds = b ? {minX:b.min[0], maxX:b.max[0], minZ:b.min[2], maxZ:b.max[2], maxY:b.max[1]} : {minX:-12, maxX:12, minZ:-12, maxZ:12, maxY:9};
+  clampBox.min.set(sceneBounds.minX + .6, .3, sceneBounds.minZ + .6);
+  clampBox.max.set(sceneBounds.maxX - .6, Math.max(2.5, sceneBounds.maxY - 1.2), sceneBounds.maxZ - .6);
+  if (!behavior.layouts?.[sceneId]){                     // 新場景：以場景宣告的表演區為中心，給一份預設互動配置
+    layoutFor(behavior, sceneId, pack.meta.actorArea?.center);
+    bus?.postMessage({type:'layoutInit', sceneId, layout:behavior.layouts[sceneId]});
+  }
+  applyLayout(true);
+  setTimeout(sendTopdown, 900);
+}
+function currentLayout(){ return behavior.layouts?.[sceneId] || makeLayout(0, -4.8); }
+function applyLayout(teleport = false){
+  const L = currentLayout();
+  wall.position.set(L.wall.x, 0, L.wall.z); wall.rotation.y = L.wall.ry; wall.updateMatrixWorld(true);
+  const home = L.waypoints.find(w => w.id === 'home') || L.waypoints[0] || {x:0, z:0};
+  STAGE.set(home.x, 0, home.z);
+  if (teleport){ zibaiRoot.position.copy(STAGE); zibaiRoot.rotation.y = 0; }
+  for (const r of objOf.values()) if (r.d.type === 'question') placeSlate(r.obj, r.k);
+  actor.setConfig({...behavior, waypoints:L.waypoints});
+}
+function placeSlate(g, k){
+  const z = currentLayout().slates, [x, zz] = slateSpot(z, k);
+  g.position.set(x, g.position.y, zz);
+  g.lookAt(z.x + Math.sin(z.ry) * 8, g.position.y, z.z + Math.cos(z.ry) * 8);
+}
+
+/* ───────── 茲白 ───────── */
+let vrm = null, zibaiRoot = new THREE.Group();
+zibaiRoot.position.copy(STAGE); scene.add(zibaiRoot);
+const lookTarget = new THREE.Object3D(); scene.add(lookTarget);
+async function loadVRM(src){
+  const loader = new GLTFLoader(); loader.register(p => new VRMLoaderPlugin(p));
+  try{
+    const gltf = await loader.loadAsync(src);
+    if (vrm){ zibaiRoot.remove(vrm.scene); VRMUtils.deepDispose(vrm.scene); }
+    vrm = gltf.userData.vrm;
+    VRMUtils.removeUnnecessaryVertices(gltf.scene);
+    VRMUtils.combineSkeletons?.(gltf.scene);
+    VRMUtils.rotateVRM0(vrm);
+    vrm.scene.traverse(o => { if (o.isMesh){ o.castShadow = true; o.frustumCulled = false; } });
+    if (vrm.lookAt) vrm.lookAt.target = lookTarget;
+    zibaiRoot.add(vrm.scene);
+    placeholder.visible = false;
+    actor.attach(vrm);
+  }catch(e){
+    console.warn('VRM 載入失敗，用替身', e);
+    placeholder.visible = true;
+  }
+}
+const placeholder = new THREE.Mesh(new THREE.CapsuleGeometry(.22, 1.1, 8, 16), new THREE.MeshStandardMaterial({color:0xdfe6e2, roughness:.5}));
+placeholder.position.y = .8; placeholder.castShadow = true; zibaiRoot.add(placeholder);
+
+// 點茲白本人
+const zibaiHit = new THREE.Mesh(new THREE.CapsuleGeometry(.32, 1.1, 4, 8), new THREE.MeshBasicMaterial({colorWrite:false, depthWrite:false}));
+zibaiHit.position.y = .85; zibaiHit.userData.itemId = '__zibai'; zibaiRoot.add(zibaiHit);
+
+/* ───────── 心情光點 → 茲白的光 ───────── */
+const moodKey = new THREE.SpotLight(0xffffff, 0, 9, .55, .75, 2);
+moodKey.position.copy(STAGE).add(new THREE.Vector3(.5, 2.5, 2.1));
+moodKey.target.position.copy(STAGE).add(new THREE.Vector3(0, 1.1, 0));
+scene.add(moodKey, moodKey.target);
+const moodRim = new THREE.PointLight(0xffffff, 0, 3.5, 2);
+moodRim.position.copy(STAGE).add(new THREE.Vector3(-.4, 2.1, -.8)); scene.add(moodRim);
+const floorHalo = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6),
+  new THREE.MeshBasicMaterial({map:GLOW, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.0}));
+floorHalo.rotation.x = -Math.PI/2; floorHalo.position.copy(STAGE).setY(.03); scene.add(floorHalo);
+const moodMix = new THREE.Color(), moodMixTarget = new THREE.Color();
+let moodPower = 0, moodPowerTarget = 0;
+
+function recomputeMoodLight(){
+  const list = DATA.filter(d => d.type === 'mood');
+  const acc = new THREE.Color(0, 0, 0);
+  list.forEach(d => acc.add(new THREE.Color(canSeeMoodColor(d) ? MOODS[d.mood].hex : '#e8ecea')));
+  if (list.length) acc.multiplyScalar(1 / list.length);
+  // 平均色會變灰，拉回飽和度
+  const hsl = {}; acc.getHSL(hsl); moodMixTarget.setHSL(hsl.h, Math.min(1, hsl.s * 1.6 + .15), .62);
+  moodPowerTarget = Math.min(1, list.length / 14);
+}
+const canSeeMoodColor = (d) => canSeeText(d);
+
+/* ───────── 物件建置 ───────── */
+const groups = {mood:new THREE.Group(), learn:new THREE.Group(), question:new THREE.Group()};
+Object.values(groups).forEach(g => scene.add(g));
+const pickables = [zibaiHit];
+const objOf = new Map();          // id -> runtime record
+const HIT_MAT = new THREE.MeshBasicMaterial({colorWrite:false, depthWrite:false});
+
+function tag(obj, d){ obj.traverse(o => { o.userData.itemId = d.id; }); }
+
+// 心情光點
+function buildDot(d, i){
+  const g = new THREE.Group();
+  const col = new THREE.Color(canSeeMoodColor(d) ? MOODS[d.mood].hex : '#e8ecea');
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW, color:col.clone().multiplyScalar(1.6), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending}));
+  halo.scale.setScalar(.42);
+  const core = new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW, color:col.clone().lerp(new THREE.Color(1,1,1), .55).multiplyScalar(3.2), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending}));
+  core.scale.setScalar(.11);
+  const hit = new THREE.Mesh(new THREE.SphereGeometry(.2, 8, 6), HIT_MAT);
+  g.add(halo, core, hit); tag(g, d); pickables.push(hit);
+  const r = {d, obj:g, halo, core, anchor:g,
+    orbit:{r:.75 + (i * .37 % 1) * .85, h:.45 + (i * .61 % 1) * 1.7, speed:(.12 + (i * .23 % 1) * .14) * (i % 2 ? 1 : -1), ph:i * 2.4},
+    arrive:0, delay:i * .12, from:new THREE.Vector3((Math.sin(i * 7.1)) * 9, 1 + (i % 4), -2 + Math.cos(i * 3.3) * 8)};
+  g.position.copy(r.from);
+  groups.mood.add(g); return r;
+}
+function dotHome(r, t, out){
+  const o = r.orbit, a = o.ph + t * o.speed;
+  return out.set(zibaiRoot.position.x + Math.cos(a) * o.r, o.h + Math.sin(t * .7 + o.ph) * .12, zibaiRoot.position.z + Math.sin(a) * o.r);
+}
+
+// 學習牆
+const wall = new THREE.Group();
+scene.add(wall);
+const WALL = {...WALL_SIZE, cols:4, rows:3};
+(function buildWall(){
+  const dark = new THREE.MeshStandardMaterial({color:0x151b21, roughness:.45, metalness:.5});
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(WALL.w + .16, WALL.h + .16, .08), dark);
+  frame.position.y = WALL.cy; frame.castShadow = true; wall.add(frame);
+  const screenTex = canvasTex(1024, 604, (c, w, h) => {
+    c.fillStyle = '#0d1f22'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = 'rgba(122,199,186,.35)'; c.lineWidth = 3;
+    for (let i = 1; i < WALL.cols; i++){ c.beginPath(); c.moveTo(w * i / WALL.cols, 0); c.lineTo(w * i / WALL.cols, h); c.stroke(); }
+    for (let j = 1; j < WALL.rows; j++){ c.beginPath(); c.moveTo(0, h * j / WALL.rows); c.lineTo(w, h * j / WALL.rows); c.stroke(); }
+    c.fillStyle = 'rgba(122,199,186,.55)'; c.font = '22px "Huninn", sans-serif';
+    for (let k = 0; k < WALL.cols * WALL.rows; k++) c.fillText('CAM ' + (k + 1), (k % WALL.cols) * w / WALL.cols + 12, Math.floor(k / WALL.cols) * h / WALL.rows + 30);
+  });
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(WALL.w, WALL.h),
+    new THREE.MeshStandardMaterial({map:screenTex, emissive:0xffffff, emissiveMap:screenTex, emissiveIntensity:.55, roughness:.4}));
+  screen.position.set(0, WALL.cy, .042); wall.add(screen);
+  const headTex = canvasTex(1024, 96, (c, w, h) => {
+    c.fillStyle = '#151b21'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#eef1e8'; c.font = '52px "Huninn", sans-serif'; c.fillText('學習牆', 24, 66);
+    c.globalAlpha = .5; c.font = '30px "Huninn", sans-serif'; c.fillText('MULTIVIEW', 210, 64);
+  });
+  const head = new THREE.Mesh(new THREE.PlaneGeometry(WALL.w + .16, .15), new THREE.MeshBasicMaterial({map:headTex}));
+  head.position.set(0, WALL.cy + WALL.h/2 + .16, .0); wall.add(head);
+  const silver = new THREE.MeshStandardMaterial({color:0xaabac4, roughness:.32, metalness:.8});
+  for (const x of [-1.2, 1.2]){
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, WALL.cy), silver);
+    pole.position.set(x, WALL.cy/2, -.08); pole.castShadow = true; wall.add(pole);
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(.08, .05, .9), dark); foot.position.set(x, .025, -.08); wall.add(foot);
+  }
+})();
+function wallSlot(k){
+  const col = k % WALL.cols, row = Math.floor(k / WALL.cols) % WALL.rows, layer = Math.floor(k / (WALL.cols * WALL.rows));
+  const cw = WALL.w / WALL.cols, ch = WALL.h / WALL.rows, j = (n) => (Math.sin(k * 12.9898 + n) * 43758.5453 % 1);
+  return {pos:new THREE.Vector3(-WALL.w/2 + cw * (col + .5) + j(1) * .06, WALL.cy + WALL.h/2 - ch * (row + .5) + j(2) * .05, .06 + layer * .012),
+          rot:j(3) * .09};
+}
+function buildNote(d, k){
+  const tex = noteTexture(d);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(.62, .56),
+    new THREE.MeshStandardMaterial({map:tex, emissive:0xffffff, emissiveMap:tex, emissiveIntensity:.42, roughness:.9}));
+  const slot = wallSlot(k);
+  m.position.copy(slot.pos); m.rotation.z = slot.rot; m.rotation.x = -.04;
+  wall.add(m); tag(m, d); pickables.push(m);
+  return {d, obj:m, anchor:m, slot};
+}
+
+// 場記板
+const slateBody = new THREE.MeshStandardMaterial({color:0x1a1e1c, roughness:.6});
+const stickMat = new THREE.MeshStandardMaterial({map:STRIPES, roughness:.5});
+const tapeMat = new THREE.MeshStandardMaterial({color:0xf08a24, roughness:.8});
+function buildSlate(d, k){
+  const g = new THREE.Group(); g.scale.setScalar(1.3); placeSlate(g, k);
+  for (const s of [1, -1]){
+    const tape = new THREE.Mesh(new THREE.BoxGeometry(.52, .004, .05), tapeMat);
+    tape.rotation.y = s * Math.PI / 4; tape.position.y = .002; g.add(tape);
+  }
+  const tally = TALLY_HEX[d.status];
+  const puddle = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3),
+    new THREE.MeshBasicMaterial({map:GLOW, color:tally, transparent:true, opacity:.55, depthWrite:false, blending:THREE.AdditiveBlending}));
+  puddle.rotation.x = -Math.PI/2; puddle.position.y = .01; g.add(puddle);
+
+  const lean = new THREE.Group(); lean.rotation.x = -.16; g.add(lean);
+  const face = slateTexture(d);
+  const faceMat = new THREE.MeshStandardMaterial({map:face, emissive:0xffffff, emissiveMap:face, emissiveIntensity:.22, roughness:.7});
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.62, .46, .028), [slateBody, slateBody, slateBody, slateBody, faceMat, slateBody]);
+  body.position.y = .25; body.castShadow = true; lean.add(body);
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(.62, .055, .03), stickMat); lower.position.y = .51; lean.add(lower);
+  const hinge = new THREE.Group(); hinge.position.set(-.31, .54, 0); lean.add(hinge);
+  const upper = new THREE.Mesh(new THREE.BoxGeometry(.63, .055, .03), stickMat); upper.position.x = .315; hinge.add(upper);
+  hinge.rotation.z = .32;
+  const strut = new THREE.Mesh(new THREE.BoxGeometry(.03, .48, .02), slateBody);
+  strut.position.set(0, .22, -.17); strut.rotation.x = .5; lean.add(strut);
+
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, .22), slateBody); stalk.position.set(.24, .64, -.03); lean.add(stalk);
+  const lampMat = new THREE.MeshStandardMaterial({color:0x111111, emissive:tally, emissiveIntensity:3});
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(.05, 16, 12), lampMat); lamp.position.set(.24, .77, -.03); lean.add(lamp);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW, color:new THREE.Color(tally).multiplyScalar(2.2), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending}));
+  glow.scale.setScalar(.5); glow.position.copy(lamp.position); lean.add(glow);
+
+  const anchor = new THREE.Object3D(); anchor.position.set(0, .5, 0); lean.add(anchor);
+  groups.question.add(g); tag(g, d); pickables.push(body, upper, lower);
+  return {d, obj:g, k, body, faceMat, hinge, lean, lamp, lampMat, glow, puddle, anchor, drop:null};
+}
+function setTally(r){
+  const c = TALLY_HEX[r.d.status];
+  r.lampMat.emissive.setHex(c); r.glow.material.color.setHex(c).multiplyScalar(2.2); r.puddle.material.color.setHex(c);
+}
+
+function buildAll(){
+  let mi = 0, li = 0, qi = 0;
+  for (const d of DATA){
+    let r;
+    if (d.type === 'mood') r = buildDot(d, mi++);
+    if (d.type === 'learn') r = buildNote(d, li++);
+    if (d.type === 'question') r = buildSlate(d, qi++);
+    objOf.set(d.id, r);
+  }
+  recomputeMoodLight(); updateCounts();
+}
+function refreshText(d){
+  const r = objOf.get(d.id); if (!r) return;
+  if (d.type === 'learn'){ r.obj.material.map.dispose(); const t = noteTexture(d); r.obj.material.map = t; r.obj.material.emissiveMap = t; r.obj.material.needsUpdate = true; }
+  if (d.type === 'question'){ r.faceMat.map.dispose(); const t = slateTexture(d); r.faceMat.map = t; r.faceMat.emissiveMap = t; r.faceMat.needsUpdate = true; }
+  if (d.type === 'mood'){
+    const col = new THREE.Color(canSeeMoodColor(d) ? MOODS[d.mood].hex : '#e8ecea');
+    r.halo.material.color.copy(col).multiplyScalar(1.6); r.core.material.color.copy(col).lerp(new THREE.Color(1,1,1), .55).multiplyScalar(3.2);
+  }
+}
+
+/* ───────── 走近顯示短文字 ───────── */
+const labelLayer = $('#labels');
+const labelEls = new Map();
+function labelFor(d){
+  let el = labelEls.get(d.id);
+  if (!el){
+    el = document.createElement('div'); el.className = 'lb'; el.style.opacity = 0;
+    el.addEventListener('click', () => select(d.id));
+    labelLayer.appendChild(el); labelEls.set(d.id, el);
+  }
+  const text = canSeeText(d) ? d.text : '只給老師看';
+  const lead = d.type === 'mood' ? `<i style="--c:${canSeeMoodColor(d) ? MOODS[d.mood].hex : '#e8ecea'}"></i>` : '';
+  const tail = d.type === 'question' ? `・${STATUS[d.status]}` : d.type === 'mood' && canSeeMoodColor(d) ? `・${MOODS[d.mood].name}` : '';
+  el.innerHTML = `<b>${lead}${who(d)}${tail}</b>${text.length > 22 ? text.slice(0, 21) + '…' : text}`;
+  return el;
+}
+const LABEL_NEAR = {mood:4.2, learn:0, question:0};    // 便利貼和場記板的字就寫在物件上
+const tmpV = new THREE.Vector3();
+function updateLabels(){
+  const cand = [];
+  for (const [id, r] of objOf){
+    const near = LABEL_NEAR[r.d.type];
+    if (!near || !state.filters[r.d.type] || r.arrive < 1){ hideLabel(id); continue; }
+    r.anchor.getWorldPosition(tmpV);
+    const dist = tmpV.distanceTo(camera.position);
+    if (dist > near){ hideLabel(id); continue; }
+    cand.push({r, dist, p:tmpV.clone()});
+  }
+  cand.sort((a, b) => a.dist - b.dist);
+  cand.forEach((c, i) => {
+    if (i > 6){ hideLabel(c.r.d.id); return; }
+    const p = c.p.project(camera);
+    if (p.z > 1){ hideLabel(c.r.d.id); return; }
+    const el = labelEls.get(c.r.d.id) || labelFor(c.r.d);
+    const x = (p.x * .5 + .5) * innerWidth, y = (-p.y * .5 + .5) * innerHeight;
+    const k = THREE.MathUtils.clamp((c.dist - 1) / (LABEL_NEAR[c.r.d.type] - 1), 0, 1);
+    el.style.transform = `translate(${x + 10}px, ${y - 12}px) translate(0,-100%) scale(${1.05 - k * .25})`;
+    el.style.opacity = Math.min(1, (1 - k) * 2.2);
+  });
+}
+function hideLabel(id){ const el = labelEls.get(id); if (el) el.style.opacity = 0; }
+
+/* ───────── 選取與討論串 ───────── */
+const ring = new THREE.Sprite(new THREE.SpriteMaterial({map:RING, color:0xffffff, transparent:true, depthTest:false}));
+ring.visible = false; ring.renderOrder = 10; scene.add(ring);
+
+function select(id){
+  const d = DATA.find(x => x.id === id); if (!d) return;
+  highlight(false); state.selected = id; ring.visible = d.type === 'mood'; highlight(true);
+  ring.scale.setScalar(d.type === 'mood' ? .5 : d.type === 'learn' ? .95 : 1.05);
+  renderPanel(d);
+  $('#panel').classList.add('open'); $('#panel').setAttribute('aria-hidden', 'false');
+  const r = objOf.get(id); r.anchor.getWorldPosition(tmpV);
+  if (tmpV.distanceTo(camera.position) > 3.2){
+    const dir = camera.position.clone().sub(tmpV).setY(0).normalize();
+    if (d.type === 'learn') dir.set(Math.sin(wall.rotation.y), 0, Math.cos(wall.rotation.y));
+    if (d.type === 'question') r.obj.getWorldDirection(dir).setY(0).normalize();
+    const narrow = innerWidth > 640 ? .55 : 0;
+    const pos = tmpV.clone().add(dir.multiplyScalar(d.type === 'mood' ? 1.8 : d.type === 'question' ? 2.3 : 2.1)).setY(Math.max(1.3, tmpV.y + (d.type === 'question' ? .6 : .35)));
+    const look = tmpV.clone().add(new THREE.Vector3(0, innerWidth <= 640 ? -.95 : 0, 0));
+    fly(pos, look, 1.1, narrow);
+  }
+}
+function closePanel(){
+  $('#panel').classList.remove('open'); $('#panel').setAttribute('aria-hidden', 'true');
+  highlight(false); state.selected = null; ring.visible = false;
+}
+function highlight(on){
+  const r = state.selected && objOf.get(state.selected); if (!r) return;
+  const m = r.d.type === 'learn' ? r.obj.material : r.d.type === 'question' ? r.faceMat : null;
+  if (m){ m.userData.base ??= m.emissiveIntensity; m.emissiveIntensity = on ? m.userData.base * 2.2 : m.userData.base; }
+}
+$('#pClose').onclick = closePanel;
+addEventListener('keydown', e => { if (e.key === 'Escape'){ closePanel(); closeCompose(); } });
+
+const esc = (s) => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function renderPanel(d){
+  const kind = {mood:'心情光點', learn:'學習便利貼', question:'問題場記板'}[d.type];
+  $('#pKind').textContent = kind + (d.type === 'question' ? ' ' + qLabel(d) : '');
+  $('#pTally').innerHTML = d.type === 'question' ? `<span class="tally ${d.status}">${STATUS[d.status]}</span>` : '';
+  const visible = canSeeText(d);
+  const vis = d.vis === 'teacher' ? '<span class="vis">只給老師看</span>' : '<span class="vis">公開</span>';
+  const moodTag = d.type === 'mood' && visible ? `<span class="vis" style="background:${MOODS[d.mood].hex}55">${MOODS[d.mood].name}</span>` : '';
+  let html = `<div class="msg origin"><div class="meta"><span class="av">${esc(who(d)).slice(0, 1)}</span>${esc(who(d))}${d.mine ? '（你）' : ''} · ${d.t} ${vis}${moodTag}</div>
+    <div class="body">${visible ? esc(d.text) : '這則內容只給老師看。'}</div></div>`;
+  if (visible) for (const m of d.thread){
+    if (m.who === 'system'){ html += `<div class="msg system">${esc(m.text)}・${m.t}</div>`; continue; }
+    const name = {zibai:'茲白', teacher:'阿祥老師', student:who(d), me:ME.nick}[m.who];
+    const av = {zibai:'<span class="av z">茲</span>', teacher:'<span class="av t">師</span>'}[m.who] || `<span class="av">${esc(name).slice(0, 1)}</span>`;
+    html += `<div class="msg ${m.who}"><div class="meta">${av}${esc(name)} · ${m.t}</div><div class="body">${esc(m.text)}</div></div>`;
+  }
+  if (visible && !d.thread.length && d.type !== 'question') html += `<p class="hint">還沒有人回應，留一句給 ${esc(who(d))} 吧。</p>`;
+  $('#thread').innerHTML = html;
+  $('#thread').scrollTop = 1e6;
+
+  const foot = $('#panelFoot'); foot.innerHTML = '';
+  if (!visible) return;
+  if (d.type === 'question' && state.role === 'teacher' && d.status === 'red'){
+    foot.innerHTML = `<div class="row"><textarea id="tReply" placeholder="以老師身分回覆…"></textarea><button class="btn amber" id="tSend">回覆並請茲白通知</button></div>
+      <p class="hint">送出後茲白會用 LINE 通知 ${esc(who(d))}，Tally 轉黃。</p>`;
+    $('#tSend').onclick = () => {
+      const v = $('#tReply').value.trim(); if (!v) return;
+      d.thread.push({who:'teacher', text:v, t:now()}, {who:'system', text:`茲白已用 LINE 通知 ${who(d)}`, t:now()});
+      d.status = 'yellow'; onStatusChange(d); renderPanel(d); toast('已回覆，茲白會通知對方');
+      actor.trigger('teacherReply', ctxOf(d));
+    };
+    return;
+  }
+  foot.innerHTML = `<div class="row"><textarea id="reply" placeholder="回一句…"></textarea><button class="btn" id="send">送出</button></div>`;
+  $('#send').onclick = () => {
+    const v = $('#reply').value.trim(); if (!v) return;
+    d.thread.push({who:state.role === 'teacher' ? 'teacher' : 'me', text:v, t:now()}); renderPanel(d);
+  };
+  if (d.type === 'question' && d.mine && d.status !== 'green'){
+    const b = document.createElement('button'); b.className = 'btn alt'; b.textContent = '我懂了，標為已解決';
+    b.onclick = () => { d.status = 'green'; d.thread.push({who:'system', text:'發問者標記為已解決', t:now()}); onStatusChange(d); renderPanel(d); toast('場記板轉綠燈'); actor.trigger('solved', ctxOf(d)); };
+    foot.appendChild(b);
+  }
+}
+function onStatusChange(d){ const r = objOf.get(d.id); setTally(r); clap(r); updateCounts(); }
+const now = () => { const n = new Date(); return `${n.getMonth() + 1}/${n.getDate()} ${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`; };
+
+/* 點擊判定：拖曳視角不算點擊 */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let down = null;
+canvas.addEventListener('pointerdown', e => { down = {x:e.clientX, y:e.clientY, t:performance.now()}; });
+canvas.addEventListener('pointerup', e => {
+  if (!down || !state.entered) return;
+  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
+  if (moved > 7 || dt > 600) return;
+  const id = pickAt(e.clientX, e.clientY);
+  if (id === '__zibai') actor.trigger('tapZibai', {});
+  else if (id) select(id); else if (state.selected) closePanel();
+});
+canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && !e.buttons) canvas.style.cursor = pickAt(e.clientX, e.clientY) ? 'pointer' : 'grab'; });
+function pickAt(x, y){
+  ndc.set(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(pickables.filter(p => visibleChain(p)), false);
+  return hits.length ? hits[0].object.userData.itemId : null;
+}
+function visibleChain(o){ for (let p = o; p; p = p.parent) if (p.visible === false) return false; return true; }
+
+/* ───────── 運鏡 ───────── */
+const SHOTS = {
+  wide:{},
+  zibai:{cap:'茲白身上的光，是大家留下的心情。一顆光點，一個人。'},
+  wall:{cap:'今天學到的事，貼在 Multiview 上給下一個人看。'},
+  slates:{cap:'問題立成場記板。紅燈等老師，黃燈已回覆，綠燈解決了。'},
+};
+// 鏡位都跟著互動配置算，換場景、搬學習牆都不用改程式
+function shotPose(name){
+  const L = currentLayout(), V = THREE.Vector3, dir = (ry) => new V(Math.sin(ry), 0, Math.cos(ry));
+  if (name === 'wide'){ const look = new V(STAGE.x - .2, 1.3, STAGE.z + .5); return {look, pos:new V(STAGE.x + 1.3, 2.3, STAGE.z + 10.2).clamp(clampBox.min, clampBox.max)}; }
+  if (name === 'zibai'){
+    const zp = zibaiRoot.position, y = zibaiRoot.rotation.y, look = new V(zp.x, 1.25, zp.z);
+    return {look, pos:look.clone().add(new V(Math.sin(y) * 2.6 + Math.cos(y) * .7, .3, Math.cos(y) * 2.6 - Math.sin(y) * .7))};
+  }
+  if (name === 'wall'){ const c = new V(L.wall.x, WALL.cy - .1, L.wall.z); return {look:c, pos:c.clone().addScaledVector(dir(L.wall.ry), 3.9).setY(1.8)}; }
+  const c = new V(L.slates.x, .35, L.slates.z);
+  return {look:c, pos:c.clone().addScaledVector(dir(L.slates.ry), 4.1).setY(1.75)};
+}
+
+let tween = null;
+function fly(pos, look, dur = 1.6, sideShift = 0){
+  const p1 = new THREE.Vector3(...(pos.isVector3 ? pos.toArray() : pos)), l1 = new THREE.Vector3(...(look.isVector3 ? look.toArray() : look));
+  if (sideShift){ const right = new THREE.Vector3().subVectors(l1, p1).cross(camera.up).normalize(); l1.addScaledVector(right, sideShift); }
+  tween = {p0:camera.position.clone(), l0:controls.target.clone(), p1, l1, t:0, dur};
+  controls.enabled = false;
+}
+function stepTween(dt){
+  if (!tween) return;
+  tween.t = Math.min(1, tween.t + dt / tween.dur);
+  const k = tween.t < .5 ? 4 * tween.t ** 3 : 1 - (-2 * tween.t + 2) ** 3 / 2;
+  camera.position.lerpVectors(tween.p0, tween.p1, k); controls.target.lerpVectors(tween.l0, tween.l1, k);
+  if (tween.t >= 1){ tween = null; controls.enabled = state.entered; }
+}
+let capTimer = 0;
+function goShot(name){
+  const s = SHOTS[name]; let {pos, look} = shotPose(name);
+  if (camera.aspect < 1 && name !== 'wide') pos = look.clone().add(pos.sub(look).multiplyScalar({zibai:1.35, wall:1.9, slates:1.4}[name]));
+  fly(pos, look, 1.6);
+  document.querySelectorAll('#shots button').forEach(b => b.setAttribute('aria-current', b.dataset.shot === name));
+  const cap = $('#caption'); clearTimeout(capTimer);
+  if (s.cap){ cap.textContent = s.cap; cap.classList.add('on'); capTimer = setTimeout(() => cap.classList.remove('on'), 4200); }
+  else cap.classList.remove('on');
+}
+document.querySelectorAll('#shots button').forEach(b => b.onclick = () => { closePanel(); goShot(b.dataset.shot); });
+const clampBox = new THREE.Box3(new THREE.Vector3(-11, .3, -9.4), new THREE.Vector3(11, 7.4, 10.4));
+
+/* ───────── 篩選、角色、計數 ───────── */
+document.querySelectorAll('#filters .chip').forEach(b => b.onclick = () => {
+  const f = b.dataset.f; state.filters[f] = !state.filters[f];
+  b.setAttribute('aria-pressed', state.filters[f]); groups[f].visible = state.filters[f];
+  if (f === 'learn') wall.children.forEach(c => { if (c.userData.itemId) c.visible = state.filters.learn; });
+});
+function updateCounts(){
+  const n = (t) => DATA.filter(d => d.type === t).length;
+  const red = DATA.filter(d => d.type === 'question' && d.status === 'red' && (state.role === 'teacher' || d.vis === 'public' || d.mine)).length;
+  $('#cMood').textContent = n('mood'); $('#cLearn').textContent = n('learn');
+  $('#cQ').innerHTML = n('question') + (red ? ` <span class="red">· ${red} 等老師</span>` : '');
+}
+$('#roleBtn').onclick = () => {
+  state.role = state.role === 'teacher' ? 'student' : 'teacher';
+  $('#roleBtn').setAttribute('aria-pressed', state.role === 'teacher');
+  $('#roleBtn').textContent = state.role === 'teacher' ? '老師視角中' : '切到老師視角';
+  DATA.forEach(d => { if (d.vis === 'teacher' && !d.mine) refreshText(d); labelEls.get(d.id) && labelFor(d); });
+  recomputeMoodLight(); updateCounts();
+  if (state.selected) renderPanel(DATA.find(d => d.id === state.selected));
+  toast(state.role === 'teacher' ? '老師視角：看得到私訊內容，可回覆紅燈問題' : '回到學生視角');
+};
+
+/* ───────── 發文 ───────── */
+const compose = {type:'mood', mood:'happy', name:'nick', vis:'public'};
+const moodPick = $('#moodPick');
+Object.entries(MOODS).forEach(([k, m]) => {
+  const b = document.createElement('button'); b.setAttribute('role', 'radio'); b.style.setProperty('--c', m.hex);
+  b.textContent = m.name; b.dataset.m = k; b.setAttribute('aria-checked', k === compose.mood);
+  b.onclick = () => { compose.mood = k; moodPick.querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x.dataset.m === k)); };
+  moodPick.appendChild(b);
+});
+$('#segName').children[0].textContent = '用「' + ME.nick + '」';
+$('#meName').textContent = ME.nick;
+const PH = {mood:'今天的心情是…', learn:'今天學到一件事…', question:'想問什麼？茲白先回答，她不確定的會轉給阿祥老師'};
+const CTA = {mood:'放出光點', learn:'貼上學習牆', question:'立起場記板'};
+function setType(t){
+  compose.type = t;
+  document.querySelectorAll('.types button').forEach(b => b.setAttribute('aria-checked', b.dataset.t === t));
+  moodPick.style.display = t === 'mood' ? 'flex' : 'none';
+  $('#txt').placeholder = PH[t]; $('#txt').maxLength = LIMIT[t]; $('#submit').textContent = CTA[t]; count();
+}
+document.querySelectorAll('.types button').forEach(b => b.onclick = () => setType(b.dataset.t));
+for (const [id, key] of [['#segName', 'name'], ['#segVis', 'vis']])
+  $(id).querySelectorAll('button').forEach(b => b.onclick = () => { compose[key] = b.dataset.v; $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x === b)); });
+const count = () => { $('#count').textContent = `${[...$('#txt').value].length} / ${LIMIT[compose.type]}`; };
+$('#txt').addEventListener('input', count);
+$('#postBtn').onclick = () => { closePanel(); $('#compose').classList.add('open'); setTimeout(() => $('#txt').focus(), 50); };
+function closeCompose(){ $('#compose').classList.remove('open'); }
+$('#cancel').onclick = closeCompose;
+$('#compose').addEventListener('click', e => { if (e.target.id === 'compose') closeCompose(); });
+
+const PAPERS = ['#ffe27a', '#ffb3c7', '#b8ecd9', '#c7d6ff', '#ffd39a'];
+$('#submit').onclick = async () => {
+  const text = $('#txt').value.trim();
+  if (!text){ $('#txt').focus(); toast('先寫點什麼再送出'); return; }
+  const d = it({type:compose.type, nick:ME.nick, mine:true, anon:compose.name === 'anon', vis:compose.vis, text, t:now()});
+  if (d.type === 'mood') d.mood = compose.mood;
+  if (d.type === 'learn') d.paper = PAPERS[DATA.filter(x => x.type === 'learn').length % PAPERS.length];
+  if (d.type === 'question') d.status = 'red';
+  DATA.push(d); await fontsReady(text);
+  $('#txt').value = ''; closeCompose();
+  spawn(d);
+};
+
+function spawn(d){
+  const idx = DATA.filter(x => x.type === d.type).length - 1;
+  const camFront = camera.position.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(1.2));
+  if (d.type === 'mood'){
+    goShot('zibai');
+    const r = buildDot(d, idx); r.from.copy(camFront); r.obj.position.copy(camFront); r.arrive = 0; r.delay = -1.5; r.born = true;
+    objOf.set(d.id, r); recomputeMoodLight(); toast('光點已放出，茲白亮了一點');
+    actor.trigger('newMood', ctxOf(d));
+  }
+  if (d.type === 'learn'){
+    goShot('wall');
+    const r = buildNote(d, idx); objOf.set(d.id, r);
+    r.fly = {t:0, from:wall.worldToLocal(camFront.clone())}; r.obj.position.copy(r.fly.from);
+    toast('已貼上學習牆');
+    actor.trigger('newLearn', ctxOf(d));
+  }
+  if (d.type === 'question'){
+    goShot('slates');
+    const r = buildSlate(d, idx); objOf.set(d.id, r);
+    r.drop = {t:-1.2}; r.obj.position.y = 3;
+    toast('場記板立起來了，茲白正在看');
+    setTimeout(() => zibaiAnswers(d), 3600);
+    actor.trigger('newQuestion', ctxOf(d));
+  }
+  updateCounts();
+}
+// 原型用：含這些關鍵字的問題假裝茲白答得出來，其他轉給老師
+function zibaiAnswers(d){
+  const canAnswer = /Pocket|OBS|VRM|快捷|安裝|下載|匯入/i.test(d.text);
+  if (canAnswer){
+    d.status = 'yellow';
+    d.thread.push({who:'zibai', text:'我先回答看看：（這裡會是茲白查過知識庫後的回覆）。如果還是卡住，按「還是不懂」我就轉給老師。', t:now()});
+  } else {
+    d.thread.push({who:'zibai', text:'這題我不想亂講，已經請阿祥老師來看了！老師回覆後我會在 LINE 通知你。', t:now()});
+  }
+  const r = objOf.get(d.id); setTally(r); if (canAnswer) clap(r); updateCounts();
+  if (state.selected === d.id) renderPanel(d);
+  toast(canAnswer ? '茲白回覆了你的問題，Tally 轉黃' : '茲白把問題轉給老師了');
+}
+function clap(r){ r.clapT = 0; }
+
+let toastTimer = 0;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2600); }
+
+/* 拖 VRM 檔進來可以換角色 */
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', e => {
+  e.preventDefault(); const f = [...e.dataTransfer.files].find(f => /\.vrm$/i.test(f.name));
+  if (f){ const url = URL.createObjectURL(f); loadVRM(url).then(() => { URL.revokeObjectURL(url); toast('已換上 ' + f.name); }); }
+});
+
+/* ───────── 茲白的行為 ───────── */
+const UP = new THREE.Vector3(0, 1, 0);
+let behavior = loadBehavior();
+const ctxOf = (d) => ({item:d, obj:objOf.get(d.id)?.obj, nick:who(d), text:canSeeText(d) ? d.text : ''});
+function wallFront(dist){
+  const n = new THREE.Vector3(Math.sin(wall.rotation.y), 0, Math.cos(wall.rotation.y));
+  return wall.position.clone().addScaledVector(n, dist).setY(0);
+}
+function resolvePoint(to, ctx){
+  if (to === '__pt' && ctx.pt) return ctx.pt.clone();
+  const wp = currentLayout().waypoints.find(w => w.id === to);
+  if (wp) return new THREE.Vector3(wp.x, 0, wp.z);
+  if (to === 'wall') return wallFront(1.35);
+  if (to === 'event' && ctx.obj){
+    if (ctx.item?.type === 'learn') return wallFront(1.35);
+    if (ctx.item?.type === 'question'){
+      const p = ctx.obj.getWorldPosition(new THREE.Vector3()), d = ctx.obj.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
+      return p.addScaledVector(d, 1.05).setY(0);
+    }
+  }
+  return null;                                     // 光點會動，不走過去，只轉頭
+}
+function resolveLook(to, ctx){
+  if (to === 'camera') return camera.position.clone();
+  if (to === 'event' && ctx.obj) return ctx.obj.getWorldPosition(new THREE.Vector3());
+  if (to === 'wall') return wall.position.clone().setY(WALL.cy);
+  if (to === 'slates'){
+    const c = new THREE.Vector3(); let n = 0;
+    groups.question.children.forEach(g => { c.add(g.position); n++; });
+    return n ? c.multiplyScalar(1 / n).setY(.6) : null;
+  }
+  const wp = currentLayout().waypoints.find(w => w.id === to);
+  return wp ? new THREE.Vector3(wp.x, 1.3, wp.z) : null;
+}
+const bubble = $('#bubble'); let bubbleTimer = 0;
+function say(text, sec){
+  bubble.textContent = text; bubble.classList.add('on');
+  clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => bubble.classList.remove('on'), sec * 1000);
+}
+const headPos = new THREE.Vector3();
+function placeBubble(){
+  if (!bubble.classList.contains('on')) return;
+  const head = vrm?.humanoid.getNormalizedBoneNode('head');
+  if (head) head.getWorldPosition(headPos); else headPos.copy(zibaiRoot.position).setY(1.5);
+  headPos.y += .32;
+  const p = headPos.project(camera);
+  const hide = p.z > 1;
+  bubble.style.visibility = hide ? 'hidden' : 'visible';
+  bubble.style.transform = `translate(${(p.x * .5 + .5) * innerWidth + 14}px, ${(-p.y * .5 + .5) * innerHeight}px) translate(0,-100%)`;
+}
+const actor = createActor({root:zibaiRoot, camera, lookTarget, resolvePoint, resolveLook, onSay:say});
+actor.setConfig({...behavior, waypoints:[]});
+let characterUrl = null;
+const characterOf = () => qs.get('vrm') || behavior.character || 'characters/Amy102800.vrm';
+
+async function reloadMotions(){
+  const map = new Map();
+  try{
+    const names = await motionsDB.list();
+    const loader = new GLTFLoader(); loader.register(p => new VRMAnimationLoaderPlugin(p));
+    for (const n of names){
+      const buf = await motionsDB.get(n);
+      try{ const g = await loader.parseAsync(buf, ''); const a = g.userData.vrmAnimations?.[0]; if (a) map.set(n, a); }
+      catch(e){ console.warn('VRMA 解析失敗', n, e); }
+    }
+  }catch(e){ console.warn('讀不到動作庫', e); }
+  actor.setMotions(map);
+}
+
+/* 導演台連線：設定即時同步、預演、回報茲白位置 */
+const bus = 'BroadcastChannel' in window ? new BroadcastChannel(BUS_NAME) : null;
+function sampleCtx(ev){
+  const pick = (type, pred = () => true) => [...DATA].reverse().find(d => d.type === type && pred(d));
+  const d = {newMood:pick('mood'), newLearn:pick('learn'), newQuestion:pick('question'),
+             teacherReply:pick('question', x => x.status === 'yellow'), solved:pick('question', x => x.status === 'green')}[ev];
+  return d ? ctxOf(d) : {};
+}
+if (bus){
+  bus.onmessage = async ({data:m}) => {
+    if (m.type === 'ping') bus.postMessage({type:'pong'});
+    if (m.type === 'config') await adoptBehavior(m.config);
+    if (m.type === 'topdown?') sendTopdown();
+    if (m.type === 'shot' && state.entered){ closePanel(); goShot(m.shot); }
+    if (m.type === 'walkTo') actor.run([{do:'walk', to:'__pt'}, {do:'face', to:'camera'}], {pt:new THREE.Vector3(m.x, 0, m.z)}, '導演台：走過去');
+    if (m.type === 'run') actor.run(m.steps, sampleCtx(m.event));
+    if (m.type === 'simulate') actor.run(behavior.reactions?.[m.event], sampleCtx(m.event), '模擬：' + m.event);
+    if (m.type === 'motions'){ await reloadMotions(); }
+  };
+  setInterval(() => bus.postMessage({type:'status', sceneId, ...actor.status()}), 250);
+}
+addEventListener('storage', e => { if (e.key === STORE_KEY) adoptBehavior(loadBehavior()); });
+// 劇本更新：場景換了就換場景層，角色換了就換角色，其他只重排互動物件
+let adopting = Promise.resolve();
+function adoptBehavior(next){
+  adopting = adopting.then(async () => {
+    next = migrate(next); if (!next) return;
+    const sceneChanged = next.scene && next.scene !== sceneId;
+    behavior = next;
+    if (sceneChanged){ toast('換場景中…'); await loadSceneLayer(behavior.scene).catch(e => toast('場景載入失敗：' + e.message)); }
+    else if (sceneId){ layoutFor(behavior, sceneId); applyLayout(false); }
+    if (characterOf() !== characterUrl) await loadVRM(characterUrl = characterOf());
+  });
+  return adopting;
+}
+// 場景平面圖：只拍場景層（把互動物件、茲白先藏起來），給導演台當底圖
+function sendTopdown(){
+  if (!bus || !studio) return;
+  const b = sceneBounds, w = b.maxX - b.minX, d = b.maxZ - b.minZ;
+  const cam = new THREE.OrthographicCamera(-w / 2, w / 2, d / 2, -d / 2, .05, 120);
+  cam.up.set(0, 0, -1);
+  cam.position.set((b.minX + b.maxX) / 2, Math.max(1.5, b.maxY - 1.3), (b.minZ + b.maxZ) / 2);
+  cam.lookAt(cam.position.x, 0, cam.position.z);
+  const hide = [wall, ...Object.values(groups), zibaiRoot, markers, ring, floorHalo];
+  const vis = hide.map(o => o.visible); hide.forEach(o => o.visible = false);
+  const fog = scene.fog; scene.fog = null;
+  renderer.render(scene, cam);
+  const out = document.createElement('canvas'); out.width = 720; out.height = Math.round(720 * d / w);
+  out.getContext('2d').drawImage(renderer.domElement, 0, 0, out.width, out.height);
+  scene.fog = fog; hide.forEach((o, i) => o.visible = vis[i]);
+  bus.postMessage({type:'topdown', sceneId, bounds:b, img:out.toDataURL('image/jpeg', .82)});
+}
+
+// 導演模式：地上標出站位
+const markers = new THREE.Group(); scene.add(markers);
+const markerMat = new THREE.MeshBasicMaterial({color:0xe9a23b, transparent:true, opacity:.8, depthWrite:false});
+function updateMarkers(t){
+  const wps = currentLayout().waypoints;
+  while (markers.children.length < wps.length){
+    const m = new THREE.Mesh(new THREE.RingGeometry(.22, .3, 32), markerMat); m.rotation.x = -Math.PI / 2; markers.add(m);
+  }
+  markers.children.forEach((m, i) => { const w = wps[i]; m.visible = !!w; if (w) m.position.set(w.x, .02, w.z); });
+  markerMat.opacity = .5 + Math.sin(t * 3) * .25;
+}
+
+/* ───────── 主迴圈 ───────── */
+const clock = new THREE.Clock();
+const home = new THREE.Vector3();
+function frame(){
+  const dt = Math.min(clock.getDelta(), .05); const t = state.clock += dt;
+  studio?.update(t);
+  actor.update(dt, t);
+  if (vrm) vrm.update(dt);
+
+  // 光點：從四散處匯聚到茲白身邊
+  for (const r of objOf.values()){
+    if (r.d.type === 'mood'){
+      if (state.entered) r.arrive = Math.min(1, Math.max(0, r.arrive + dt * .45 * (r.delay < 0 ? 1 : 0))), r.delay -= dt;
+      dotHome(r, t, home);
+      const k = r.arrive < 1 ? 1 - (1 - r.arrive) ** 3 : 1;
+      r.obj.position.lerpVectors(r.from, home, k);
+      if (r.arrive < 1) r.obj.position.y += Math.sin(k * Math.PI) * .8;
+      const tw = .85 + Math.sin(t * 2.3 + r.orbit.ph) * .15;
+      r.core.scale.setScalar(.11 * tw * (r.born && r.arrive < 1 ? 1.6 : 1));
+    }
+    if (r.d.type === 'learn' && r.fly){
+      r.fly.t = Math.min(1, r.fly.t + dt / 1.1); const k = 1 - (1 - r.fly.t) ** 3;
+      r.obj.position.lerpVectors(r.fly.from, r.slot.pos, k);
+      r.obj.rotation.z = r.slot.rot + (1 - k) * 2.4; r.obj.scale.setScalar(.6 + .4 * k);
+      if (r.fly.t >= 1) r.fly = null;
+    }
+    if (r.d.type === 'question'){
+      if (r.drop){
+        r.drop.t += dt; const u = THREE.MathUtils.clamp(r.drop.t / .7, 0, 1);
+        const b = u < 1 ? 1 - Math.abs(Math.cos(u * Math.PI * 1.5)) * (1 - u) : 1;   // 落地彈兩下
+        r.obj.position.y = 3 * (1 - (u * u)) * (u < .6 ? 1 : 0) + (u >= .6 ? (1 - b) * .15 : 0);
+        if (u >= 1){ r.obj.position.y = 0; r.drop = null; clap(r); }
+      }
+      if (r.clapT !== undefined){
+        r.clapT += dt;
+        const c = r.clapT < .12 ? .32 + r.clapT / .12 * .35 : r.clapT < .2 ? .67 * (1 - (r.clapT - .12) / .08) : Math.min(.32, (r.clapT - .2) * 1.2);
+        r.hinge.rotation.z = c; if (r.clapT > .5){ r.hinge.rotation.z = .32; delete r.clapT; }
+      }
+      const pulse = r.d.status === 'red' ? .55 + .45 * (Math.sin(t * 3.2) * .5 + .5) : r.d.status === 'yellow' ? .9 : .6;
+      r.lampMat.emissiveIntensity = 3 * pulse; r.glow.material.opacity = pulse; r.puddle.material.opacity = .5 * pulse;
+    }
+  }
+
+  // 茲白的光：心情越多越亮，顏色是大家心情的混色
+  moodMix.lerp(moodMixTarget, dt * 1.5);
+  moodPower += (moodPowerTarget * (state.entered ? 1 : .15) - moodPower) * dt * .8;
+  { const yaw = zibaiRoot.rotation.y, zp = zibaiRoot.position;       // 茲白的光跟著她走
+    moodKey.position.set(.5, 2.5, 2.1).applyAxisAngle(UP, yaw).add(zp); moodKey.target.position.set(zp.x, 1.1, zp.z);
+    moodRim.position.set(-.4, 2.1, -.8).applyAxisAngle(UP, yaw).add(zp); floorHalo.position.set(zp.x, .03, zp.z); }
+  moodKey.color.copy(moodMix); moodKey.intensity = 1.5 + 9 * moodPower;
+  moodRim.color.copy(moodMix); moodRim.intensity = 1 + 5 * moodPower;
+  floorHalo.material.color.copy(moodMix); floorHalo.material.opacity = .08 + .3 * moodPower;
+
+  if (state.selected){
+    const r = objOf.get(state.selected); r.anchor.getWorldPosition(ring.position);
+    ring.material.rotation += dt * .6; ring.material.opacity = .45 + Math.sin(t * 4) * .2;
+  }
+
+  stepTween(dt);
+  if (controls.enabled) controls.update();
+  camera.position.clamp(clampBox.min, clampBox.max);
+  camera.lookAt(controls.target);
+  composer.render();
+  updateLabels(); placeBubble();
+  if (DIRECTOR) updateMarkers(t);
+  requestAnimationFrame(frame);
+}
+
+/* ───────── 啟動 ───────── */
+async function boot(){
+  const allText = DATA.map(d => d.text + (d.nick || '')).join('') + '問題發問學習牆只給老師看匿名— Q0123456789/:';
+  $('#loadState').textContent = '載入攝影棚與字型';
+  await Promise.all([loadSceneLayer(qs.get('scene') || behavior.scene), fontsReady(allText)]);
+  buildAll();
+  moodMix.copy(moodMixTarget);
+  camera.lookAt(controls.target);
+  requestAnimationFrame(frame);
+  $('#loadState').textContent = '請茲白就位';
+  await loadVRM(characterUrl = characterOf());
+  $('#loadState').textContent = vrm ? '' : `找不到 ${characterUrl}，先用替身（可以把 .vrm 拖進畫面）`;
+  $('#enter').disabled = false; $('#enter').textContent = '進棚';
+  await reloadMotions();
+  if (DIRECTOR) $('#enter').click();
+}
+$('#enter').onclick = () => {
+  $('#splash').classList.add('gone'); state.entered = true;
+  goShot('wide'); tween.dur = 3.4;
+  setTimeout(() => { if (!tween) controls.enabled = true; actor.trigger('enter', {}); }, 3500);
+};
+boot().catch(e => { console.error(e); $('#loadState').textContent = '載入失敗：' + e.message; });
+
+window.__board = {DATA, select, goShot, state, camera, controls, actor, vrm:() => vrm, snap:() => { if (tween){ tween.t = .999; stepTween(.01); } }};   // 除錯用
+</script>
+</body>
+</html>

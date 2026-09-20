@@ -1,0 +1,66 @@
+{
+  "loop": true,
+  "motion": true,
+  "sameSeed": true,
+  "seek": true,
+  "noDrift": true,
+  "reducedMotion": true,
+  "finiteGeometry": true,
+  "triangles": 229126,
+  "meshes": 293,
+  "manualStable": true,
+  "cameraPoseChanges": true,
+  "feetOnFloor": true,
+  "anchorsFinite": true,
+  "headLevel": true,
+  "invalidAtomic": true,
+  "clamped": true,
+  "operatorBridge": true,
+  "armIKError": {
+    "left": 0.001741006666667495,
+    "right": 0.001741006666667495
+  },
+  "armIK": true,
+  "armIKRestored": true,
+  "borrowedTextureSafe": true,
+  "fixtureLightPixelDifference": 1.473015625,
+  "memory": {
+    "before": {
+      "geometries": 185,
+      "textures": 23
+    },
+    "after": {
+      "geometries": 185,
+      "textures": 23
+    },
+    "rebuilds": 5
+  },
+  "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 (0x00001F07) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "route": {
+    "frames": 180,
+    "medianMs": 16.69999999999891,
+    "p95Ms": 16.799999999999272,
+    "calls": [
+      614,
+      692
+    ],
+    "submittedTriangles": [
+      639186,
+      686108
+    ],
+    "resolution": [
+      1280,
+      800
+    ]
+  },
+  "moduleErrors": [],
+  "externalRequests": [],
+  "host": {
+    "version": "0.3.7 + existing FogFix",
+    "state": "ACTIVE",
+    "pause": true,
+    "reset": true,
+    "switchBack": true,
+    "errors": []
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "schema": "pocketvp.scene/1",
+  "id": "ltu-realtime-vfx-studio-v11",
+  "name": "嶺東攝影棚 · LTU VFX Backlight Haze",
+  "version": "1.1.0",
+  "entry": "scene.js",
+  "minPocketVP": "0.3.7",
+  "author": "LTU Photo-to-Living",
+  "sceneMode": "living",
+  "loopSeconds": 32,
+  "seed": 918,
+  "background": "#242c2a",
+  "fogColor": "#29352f",
+  "concept": "preview.png",
+  "textures": {
+    "signage": "assets/signage.png"
+  },
+  "objects": [
+    {
+      "id": "studio-shell",
+      "name": "完整棚體與弧面綠幕",
+      "motion": "static"
+    },
+    {
+      "id": "ceiling-structure",
+      "name": "天花格樑與追蹤標記",
+      "motion": "static"
+    },
+    {
+      "id": "catwalks",
+      "name": "側邊走道與欄杆",
+      "motion": "static"
+    },
+    {
+      "id": "building-services",
+      "name": "窗簾、空調與管線",
+      "motion": "static"
+    },
+    {
+      "id": "tracking-floor",
+      "name": "中央追蹤表演區",
+      "motion": "static"
+    },
+    {
+      "id": "cammate-crane",
+      "name": "CamMate 參考式搖臂",
+      "motion": "32-second yaw/elevation/remote-head motion"
+    },
+    {
+      "id": "crane-console",
+      "name": "遙控操作台",
+      "motion": "static; API interaction anchors"
+    },
+    {
+      "id": "orbiter-key",
+      "name": "Orbiter 主燈",
+      "motion": "dimmer loop; manual tilt"
+    },
+    {
+      "id": "orbiter-fill",
+      "name": "Orbiter 輔燈",
+      "motion": "dimmer loop; manual tilt"
+    },
+    {
+      "id": "skypanel-left",
+      "name": "SkyPanel 左柔光",
+      "motion": "dimmer loop"
+    },
+    {
+      "id": "skypanel-right",
+      "name": "SkyPanel 右柔光",
+      "motion": "dimmer loop"
+    },
+    {
+      "id": "broadcast-desk",
+      "name": "導播合成工作站",
+      "motion": "static"
+    },
+    {
+      "id": "tripod-camera",
+      "name": "三腳架攝影機",
+      "motion": "static"
+    },
+    {
+      "id": "empty-operator-seats",
+      "name": "空置操作椅",
+      "motion": "static"
+    },
+    {
+      "id": "equipment-racks",
+      "name": "機櫃與設備箱",
+      "motion": "static"
+    },
+    {
+      "id": "floor-return-monitors",
+      "name": "返送螢幕",
+      "motion": "static demonstration graphics"
+    },
+    {
+      "id": "floor-cables",
+      "name": "電源與訊號線",
+      "motion": "static"
+    },
+    {
+      "id": "studio-atmosphere",
+      "name": "棚燈逆光、薄霧與塵點",
+      "motion": "32-second deterministic loop; manual haze/dust/rimDimmer"
+    }
+  ],
+  "recommendedHostSettings": {
+    "lightingOn": false,
+    "envPower": 0.12,
+    "exposure": 1,
+    "bloom": 0.12,
+    "aoOn": false,
+    "vignette": 0,
+    "contrast": 1,
+    "saturation": 1
+  },
+  "interaction": {
+    "api": "returnedInstance.api",
+    "adapter": "operator-binding.js",
+    "stations": [
+      "crane-console",
+      "crane-tail",
+      "orbiter-key",
+      "orbiter-fill",
+      "skypanel-left",
+      "skypanel-right",
+      "tripod-camera",
+      "switcher",
+      "audio"
+    ],
+    "hostAutoConnected": false,
+    "containsPeople": false
+  },
+  "notes": [
+    "Architecture dimensions are estimates from supplied photographs.",
+    "CamMate and ARRI fixtures are original reference-style geometry, not CAD replicas.",
+    "Original Pocket VP 0.3.7 needs the separately supplied FogFix.",
+    "Screens are static demonstration graphics; no camera video is embedded."
+  ]
+}

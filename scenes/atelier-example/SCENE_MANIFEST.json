@@ -1,0 +1,13 @@
+{
+  "schema": "pocketvp.scene/1",
+  "id": "atelier-example",
+  "name": "程序化光影藝廊（Scene Kit 範例）",
+  "version": "1.2.0",
+  "entry": "starter-scene.js",
+  "minPocketVP": "0.3.7",
+  "sceneMode": "living",
+  "seed": 42,
+  "loopSeconds": 8,
+  "background": "#bcd4df",
+  "fogColor": "#d6ded9"
+}

@@ -1,0 +1,14 @@
+[
+ {
+  "id": "atelier-example",
+  "name": "程序化光影藝廊（Scene Kit 範例）",
+  "version": "1.2.0",
+  "path": "scenes/atelier-example/"
+ },
+ {
+  "id": "ltu-realtime-vfx-studio-v11",
+  "name": "嶺東攝影棚 · LTU VFX Backlight Haze",
+  "version": "1.1.0",
+  "path": "scenes/ltu-realtime-vfx-studio-v11/"
+ }
+]

@@ -1,0 +1,97 @@
+{
+  "schema": "pocketvp.production-spec/1",
+  "kitVersion": "1.2",
+  "id": "ltu-realtime-vfx-studio-v11",
+  "reconstruction": "full 3D indoor photo-reference reconstruction; estimated dimensions",
+  "units": "meters; Y up; green wall at -Z; control desks at +Z",
+  "profile": {
+    "environment": "E2 indoor",
+    "detail": "D3 equipment detail target; reference-style geometry, not CAD-certified",
+    "atmosphere": "A2 directional backlight with artistic haze cones and GPU dust"
+  },
+  "room": {
+    "width": 24,
+    "depth": 22,
+    "height": 8.5,
+    "cycloramaRadius": 1.25
+  },
+  "cameraEnvelope": {
+    "x": [
+      -9.5,
+      9.5
+    ],
+    "z": [
+      -8.5,
+      9.6
+    ],
+    "y": [
+      1.5,
+      7.2
+    ],
+    "fov": [
+      43,
+      75
+    ],
+    "exclusions": [
+      "inside fixtures and crane",
+      "inside walls and ceiling",
+      "outside building"
+    ],
+    "hardLimitImplemented": false,
+    "near": 0.05,
+    "far": 160
+  },
+  "containsPeople": false,
+  "actorArea": {
+    "center": [
+      0,
+      0.025,
+      -4.8
+    ],
+    "width": 6,
+    "depth": 4
+  },
+  "lighting": {
+    "shadowSpots": 4,
+    "shadowMapSize": [
+      1024,
+      1024
+    ],
+    "rectAreaLights": 2,
+    "rectAreaShadows": false,
+    "globalIllumination": false,
+    "calibratedPhotometry": false,
+    "environment": "host supplied; recommended .12",
+    "ceilingLightsOn": false
+  },
+  "animation": {
+    "duration": 32,
+    "absoluteTime": true,
+    "manualOverride": true,
+    "objects": [
+      "crane yaw/elevation",
+      "remote-head pan/tilt",
+      "fixture intensity",
+      "rim fixture pan/tilt",
+      "GPU dust closed paths"
+    ]
+  },
+  "interaction": {
+    "stations": 9,
+    "controlAPI": true,
+    "worldSpaceAnchors": true,
+    "armIK": "included CCD; tested synthetic skeleton",
+    "realVRMTested": false,
+    "hostAutomaticBinding": false,
+    "fingerPose": false,
+    "jointLimits": false,
+    "collision": false
+  },
+  "acceptance": {
+    "shots": "CAMERA_SHOTS.json",
+    "runtimeTests": "QA_RESULTS.json",
+    "realHostImport": "0.3.7 + existing FogFix",
+    "pathFrames": 180,
+    "photorealReplica": false
+  }
+}

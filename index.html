@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>茲白導演台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Huninn&family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1c2622; --paper:#eef1e8; --paper2:#e2e7db; --line:#c9d0c2; --card:#f7f9f3;
+  --red:#e8433a; --yellow:#f3b833; --green:#33b870; --amber:#e9a23b; --emerald:#19a078; --tape:#f08a24;
+  --ui:"Huninn","PingFang TC","Microsoft JhengHei",sans-serif; --hand:"LXGW WenKai TC","Kaiti TC",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-family:var(--ui)}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+h1{margin:0;font-size:22px;font-weight:400;transform:rotate(-1deg);background:#fff;padding:4px 12px;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.12);font-family:var(--hand)}
+#conn{display:flex;align-items:center;gap:7px;font-size:14px}
+#conn i{width:10px;height:10px;border-radius:50%;background:#9aa39d}
+#conn.on i{background:var(--green);box-shadow:0 0 8px var(--green)}
+header .sp{flex:1}
+.btn{border:0;border-radius:9px;padding:8px 13px;background:var(--ink);color:var(--paper);font-size:14px}
+.btn.soft{background:var(--paper2);color:var(--ink)}
+.btn.amber{background:var(--amber);color:var(--ink)}
+.btn.small{padding:5px 10px;font-size:13px}
+#saved{font-size:12px;opacity:.55}
+.pick{display:flex;align-items:center;gap:6px;font-size:14px;padding-left:12px;border-left:1px dashed var(--line)}
+.pick select,.pick input{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff}
+#mapNote{position:absolute;left:12px;top:10px;color:#eef1e8;font-size:13px;opacity:.8;pointer-events:none}
+#selEdit{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;min-height:36px}
+#selEdit input[type=text]{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:#fff;width:140px}
+#selEdit input[type=range]{width:160px}
+
+main{display:grid;grid-template-columns:minmax(380px,1fr) minmax(460px,560px);gap:18px;padding:16px 18px;height:calc(100% - 62px)}
+@media (max-width:980px){main{grid-template-columns:1fr;height:auto}}
+section{min-height:0}
+#left{display:flex;flex-direction:column;gap:10px}
+#mapWrap{position:relative;background:#1b2422;border-radius:10px;overflow:hidden;flex:1;min-height:340px}
+#map{width:100%;height:100%;display:block;touch-action:none}
+#mapTools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#doing{font-family:var(--hand);font-size:17px;padding:8px 12px;background:#fbefd9;border-left:3px solid var(--amber);border-radius:4px}
+#wpEdit{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;min-height:36px}
+#wpEdit input{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:#fff;width:140px}
+.muted{opacity:.6;font-size:13px}
+
+#right{display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--ink)}
+.tabs button{border:0;background:none;padding:9px 14px;border-radius:8px 8px 0 0;font-size:15px}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--paper)}
+.pane{overflow-y:auto;padding:14px 2px 30px;flex:1}
+.pane[hidden]{display:none}
+.lead{font-size:13px;opacity:.7;margin:0 0 12px;line-height:1.6}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.cardHead{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.cardHead input.name{flex:1;border:0;border-bottom:1px dashed var(--line);background:none;font-family:var(--hand);font-size:18px;padding:2px 0}
+.cardHead h3{margin:0;font-weight:400;font-size:17px;flex:1}
+.cardHead .hint{font-size:12px;opacity:.6}
+.weight{display:flex;align-items:center;gap:6px;font-size:13px}
+.weight select{border:1px solid var(--line);border-radius:6px;padding:3px;background:#fff}
+.pct{font-size:12px;opacity:.6;min-width:34px;text-align:right}
+.steps{display:flex;flex-direction:column;gap:6px}
+.step{display:grid;grid-template-columns:22px 92px 1fr auto;gap:6px;align-items:center;background:#fff;border-radius:8px;padding:5px 6px;border:1px solid transparent}
+.step.running{border-color:var(--amber);box-shadow:0 0 0 2px rgba(233,162,59,.25)}
+.step .n{font-size:12px;opacity:.5;text-align:center}
+.step select,.step input{border:1px solid var(--line);border-radius:6px;padding:5px 6px;background:#fff;min-width:0;width:100%}
+.step .p{display:flex;gap:6px;min-width:0}
+.step .p input[type=number]{width:64px;flex:none}
+.ops{display:flex;gap:2px}
+.ops button{border:0;background:var(--paper2);width:26px;height:26px;border-radius:6px;font-size:13px;line-height:1}
+.rowBtns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.gap{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:12px}
+.gap input{width:60px;border:1px solid var(--line);border-radius:6px;padding:4px 6px;background:#fff}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:16px}
+.lib .item{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.lib .item b{font-weight:400;font-size:16px}
+.lib .item span{font-size:12px;opacity:.6}
+.lib .item .rowBtns{margin-top:0}
+#drop{border:2px dashed var(--line);border-radius:10px;padding:18px;text-align:center;font-size:14px;background:#fff}
+#drop.over{border-color:var(--amber);background:#fbefd9}
+h2{font-size:16px;font-weight:400;margin:4px 0 10px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,160%);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:9px;transition:transform .3s;font-size:14px}
+#toast.on{transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<header>
+  <h1>茲白導演台</h1>
+  <div id="conn"><i></i><span>棚內預覽沒開</span></div>
+  <button class="btn amber small" id="openStage">開啟棚內預覽</button>
+  <label class="pick">場景 <select id="sceneSel"><option>讀取中…</option></select></label>
+  <div class="sp"></div>
+  <span id="saved">已自動存檔</span>
+  <button class="btn soft small" id="importBtn">匯入劇本</button>
+  <button class="btn soft small" id="exportBtn">匯出劇本</button>
+  <button class="btn soft small" id="resetBtn">還原預設</button>
+  <input type="file" id="importFile" accept=".json,application/json" hidden>
+</header>
+
+<main>
+  <section id="left">
+    <div id="mapWrap"><canvas id="map"></canvas><div id="mapNote"></div></div>
+    <div id="mapTools">
+      <button class="btn small" id="addWp">＋ 新增站位</button>
+      <span class="muted" id="mapHint">拖曳站位、學習牆、場記區調整位置；點空地可以叫茲白走過去</span>
+    </div>
+    <div id="selEdit"></div>
+    <div id="doing">茲白正在：—</div>
+  </section>
+
+  <section id="right">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="idle">待機行程</button>
+      <button role="tab" aria-selected="false" data-tab="react">事件反應</button>
+      <button role="tab" aria-selected="false" data-tab="lib">動作庫</button>
+    </div>
+    <div class="pane" id="pane-idle">
+      <p class="lead">沒人理她的時候，茲白每隔一段時間會照機率挑一段行程來做。說話不會卡住下一步，想讓她講完再動就加一個「等待」。</p>
+      <div class="gap">每段行程之間休息 <input type="number" id="gapA" min="0" step="1"> 到 <input type="number" id="gapB" min="0" step="1"> 秒</div>
+      <div id="beats"></div>
+      <button class="btn" id="addBeat">＋ 新增一段行程</button>
+    </div>
+    <div class="pane" id="pane-react" hidden>
+      <p class="lead">棚裡發生這些事的時候，茲白會中斷待機去反應。「觸發的物件」指剛出現的那顆光點、那張便利貼或那塊場記板。</p>
+      <div id="reactions"></div>
+    </div>
+    <div class="pane" id="pane-lib" hidden>
+      <h2>角色</h2>
+      <div class="gap">角色模型 <input type="text" id="charPath" style="width:280px" aria-label="角色模型路徑"><span class="muted">放在 characters/ 資料夾的 .vrm</span></div>
+      <h2>內建動作</h2>
+      <div class="lib" id="builtin"></div>
+      <h2>匯入的 VRMA 動作</h2>
+      <div class="lib" id="vrmaList"></div>
+      <label id="drop">把 .vrma 檔拖到這裡，或<u>點這裡選檔</u>
+        <input type="file" id="vrmaFile" accept=".vrma" multiple hidden></label>
+      <p class="lead" style="margin-top:10px">VRMA 是 VRM 官方的動畫格式，匯入後就能在「做動作」裡選到。動作檔存在這台電腦的瀏覽器裡，換電腦要重新匯入。</p>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script type="module">
+import {ACTIONS, EXPRESSIONS, STEP_TYPES, LOOK_TARGETS, EVENTS, DEFAULT_BEHAVIOR, WALL_SIZE,
+        BUS_NAME, loadBehavior, saveBehavior, migrate, motionsDB, slateSpot} from './zibai-behavior.js';
+
+const $ = (s) => document.querySelector(s);
+let cfg = loadBehavior();
+let vrmaNames = [];
+let status = null, lastPong = 0, addMode = false;
+const bus = new BroadcastChannel(BUS_NAME);
+
+/* ───────── 存檔與同步 ───────── */
+let saveTimer = 0;
+function commit(rerender = false){
+  clearTimeout(saveTimer);
+  $('#saved').textContent = '存檔中…';
+  saveTimer = setTimeout(() => {
+    saveBehavior(cfg); bus.postMessage({type:'config', config:cfg});
+    $('#saved').textContent = '已自動存檔';
+  }, 200);
+  if (rerender) renderAll();
+}
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2200); }
+
+/* ───────── 連線狀態 ───────── */
+bus.onmessage = ({data:m}) => {
+  if (m.type === 'pong' || m.type === 'status') lastPong = performance.now();
+  if (m.type === 'status'){ status = m; showDoing(); }
+  if (m.type === 'topdown'){
+    const imgEl = new Image(); imgEl.src = m.img;
+    tops[m.sceneId] = {bounds:m.bounds, imgEl}; imgEl.onload = () => fit();
+  }
+  if (m.type === 'layoutInit' && !cfg.layouts?.[m.sceneId]){ (cfg.layouts ??= {})[m.sceneId] = m.layout; commit(true); }
+};
+setInterval(() => {
+  bus.postMessage({type:'ping'});
+  const on = performance.now() - lastPong < 4000;
+  $('#conn').classList.toggle('on', on);
+  $('#conn span').textContent = on ? '棚內預覽已連線' : '棚內預覽沒開';
+  $('#openStage').hidden = on;
+}, 1000);
+$('#openStage').onclick = () => window.open('zibai-board.html?director=1', 'zibaiStage');
+function showDoing(){
+  if (!status) return;
+  $('#doing').textContent = '茲白正在：' + status.doing + (status.seq ? `（${status.seq}）` : '');
+  document.querySelectorAll('.step.running').forEach(e => e.classList.remove('running'));
+  if (status.seq && status.step >= 0){
+    const box = document.querySelector(`[data-seqname="${CSS.escape(status.seq)}"]`);
+    box?.querySelectorAll('.step')[status.step]?.classList.add('running');
+  }
+}
+
+/* ───────── 平面圖：場景底圖（棚內預覽拍的）＋ 互動配置 ───────── */
+const cv = $('#map'), cx = cv.getContext('2d');
+const tops = {};                                            // sceneId -> {img, bounds}
+let scenes = [];
+const Lay = () => cfg.layouts?.[cfg.scene] || null;
+const DEFAULT_BOUNDS = {minX:-12, maxX:12, minZ:-12, maxZ:12};
+const B = () => tops[cfg.scene]?.bounds || DEFAULT_BOUNDS;
+let view = {s:1, ox:0, oy:0, w:0, h:0};
+let selected = null;                                        // {kind:'wp', id} | {kind:'wall'} | {kind:'slates'}
+function fit(){
+  const r = cv.parentElement.getBoundingClientRect(), dpr = devicePixelRatio || 1, M = B();
+  cv.width = r.width * dpr; cv.height = r.height * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const s = Math.min((r.width - 24) / (M.maxX - M.minX), (r.height - 24) / (M.maxZ - M.minZ));
+  view = {s, ox:(r.width - s * (M.maxX - M.minX)) / 2, oy:(r.height - s * (M.maxZ - M.minZ)) / 2, w:r.width, h:r.height};
+}
+const toScreen = (x, z) => { const M = B(); return [view.ox + (x - M.minX) * view.s, view.oy + (z - M.minZ) * view.s]; };
+const toWorld = (px, py) => { const M = B(); return [(px - view.ox) / view.s + M.minX, (py - view.oy) / view.s + M.minZ]; };
+const wallEnds = (w) => { const dx = Math.cos(w.ry) * WALL_SIZE.w / 2, dz = -Math.sin(w.ry) * WALL_SIZE.w / 2; return [[w.x - dx, w.z - dz], [w.x + dx, w.z + dz]]; };
+function arrow(x, z, ry, len, color){
+  const [a, b] = toScreen(x, z), [c, d] = toScreen(x + Math.sin(ry) * len, z + Math.cos(ry) * len);
+  cx.strokeStyle = color; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(a, b); cx.lineTo(c, d); cx.stroke();
+  cx.beginPath(); cx.arc(c, d, 3, 0, Math.PI * 2); cx.fillStyle = color; cx.fill();
+}
+function draw(){
+  cx.clearRect(0, 0, view.w, view.h);
+  const M = B(), top = tops[cfg.scene];
+  const [x0, y0] = toScreen(M.minX, M.minZ), [x1, y1] = toScreen(M.maxX, M.maxZ);
+  if (top?.imgEl?.complete) cx.drawImage(top.imgEl, x0, y0, x1 - x0, y1 - y0);
+  else { cx.fillStyle = '#2b3a33'; cx.fillRect(x0, y0, x1 - x0, y1 - y0); }
+  $('#mapNote').textContent = top ? '上方是場景深處，下方靠觀眾' : '開啟棚內預覽後，這裡會換成場景的俯視圖';
+  const L = Lay();
+  if (L){
+    // 學習牆
+    const [[ax, az], [bx, bz]] = wallEnds(L.wall), [sa, sb] = toScreen(ax, az), [sc, sd] = toScreen(bx, bz);
+    const selW = selected?.kind === 'wall';
+    cx.lineCap = 'round'; cx.strokeStyle = '#0d1f22'; cx.lineWidth = 9; cx.beginPath(); cx.moveTo(sa, sb); cx.lineTo(sc, sd); cx.stroke();
+    cx.strokeStyle = selW ? '#e9a23b' : '#7ac7ba'; cx.lineWidth = 3; cx.stroke();
+    arrow(L.wall.x, L.wall.z, L.wall.ry, 1.2, selW ? '#e9a23b' : '#7ac7ba');
+    const [wx, wy] = toScreen(L.wall.x, L.wall.z);
+    cx.fillStyle = '#eef1e8'; cx.font = '13px Huninn, sans-serif'; cx.fillText('學習牆', wx + 8, wy - 10);
+    // 場記區
+    const selS = selected?.kind === 'slates';
+    for (let k = 0; k < 8; k++){ const [x, z] = slateSpot(L.slates, k), [px, py] = toScreen(x, z); cx.fillStyle = '#111'; cx.fillRect(px - 6, py - 4, 12, 8); cx.fillStyle = '#f08a24'; cx.fillRect(px - 6, py + 4, 12, 2); }
+    const [zx, zy] = toScreen(L.slates.x, L.slates.z);
+    cx.beginPath(); cx.arc(zx, zy, 8, 0, Math.PI * 2); cx.strokeStyle = selS ? '#e9a23b' : '#f08a24'; cx.lineWidth = 2; cx.stroke();
+    arrow(L.slates.x, L.slates.z, L.slates.ry, 1.5, selS ? '#e9a23b' : '#f08a24');
+    cx.fillStyle = '#eef1e8'; cx.fillText('場記區', zx + 10, zy - 10);
+    // 站位
+    L.waypoints.forEach(p => {
+      const [px, py] = toScreen(p.x, p.z), sel = selected?.kind === 'wp' && selected.id === p.id;
+      cx.beginPath(); cx.arc(px, py, 9, 0, Math.PI * 2);
+      cx.fillStyle = sel ? '#e9a23b' : 'rgba(233,162,59,.35)'; cx.fill(); cx.lineWidth = 2; cx.strokeStyle = '#e9a23b'; cx.stroke();
+      cx.fillStyle = '#fff'; cx.font = '13px "LXGW WenKai TC", serif'; cx.fillText(p.name, px + 13, py + 4);
+    });
+  }
+  // 茲白
+  if (status && status.sceneId === cfg.scene){
+    const [zx, zy] = toScreen(status.x, status.z);
+    cx.save(); cx.translate(zx, zy); cx.rotate(-status.yaw);
+    cx.beginPath(); cx.moveTo(0, 16); cx.lineTo(-8, -6); cx.lineTo(8, -6); cx.closePath(); cx.fillStyle = '#fff'; cx.fill(); cx.restore();
+    cx.beginPath(); cx.arc(zx, zy, 5, 0, Math.PI * 2); cx.fillStyle = '#e9a23b'; cx.fill();
+    cx.fillStyle = '#fbefd9'; cx.font = '13px Huninn, sans-serif'; cx.fillText('茲白', zx - 12, zy - 14);
+  }
+  requestAnimationFrame(draw);
+}
+function hitTest(px, py){
+  const L = Lay(); if (!L) return null;
+  const near = (x, z, r) => { const [a, b] = toScreen(x, z); return Math.hypot(a - px, b - py) < r; };
+  const wp = L.waypoints.find(p => near(p.x, p.z, 12)); if (wp) return {kind:'wp', id:wp.id, obj:wp};
+  if (near(L.slates.x, L.slates.z, 14)) return {kind:'slates', obj:L.slates};
+  const [[ax, az], [bx, bz]] = wallEnds(L.wall), [sa, sb] = toScreen(ax, az), [sc, sd] = toScreen(bx, bz);
+  const t = Math.max(0, Math.min(1, ((px - sa) * (sc - sa) + (py - sb) * (sd - sb)) / ((sc - sa) ** 2 + (sd - sb) ** 2 || 1)));
+  if (Math.hypot(sa + (sc - sa) * t - px, sb + (sd - sb) * t - py) < 9) return {kind:'wall', obj:L.wall};
+  return null;
+}
+let drag = null;
+cv.addEventListener('pointerdown', e => {
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, [wx, wz] = toWorld(px, py);
+  const L = Lay(); if (!L){ toast('先開啟棚內預覽，讓這個場景產生互動配置'); return; }
+  if (addMode){
+    const id = 'wp' + Date.now().toString(36);
+    L.waypoints.push({id, name:'新站位', x:+wx.toFixed(2), z:+wz.toFixed(2)});
+    selected = {kind:'wp', id}; addMode = false; $('#mapHint').textContent = '拖曳站位、學習牆、場記區調整位置；點空地可以叫茲白走過去';
+    commit(true); return;
+  }
+  const hit = hitTest(px, py);
+  if (hit){ selected = {kind:hit.kind, id:hit.id}; drag = {obj:hit.obj, dx:hit.obj.x - wx, dz:hit.obj.z - wz}; cv.setPointerCapture(e.pointerId); renderSel(); return; }
+  bus.postMessage({type:'walkTo', x:wx, z:wz});           // 點空地：叫茲白走過去（只預演，不存檔）
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const r = cv.getBoundingClientRect(), [wx, wz] = toWorld(e.clientX - r.left, e.clientY - r.top), M = B();
+  drag.obj.x = +Math.max(M.minX, Math.min(M.maxX, wx + drag.dx)).toFixed(2);
+  drag.obj.z = +Math.max(M.minZ, Math.min(M.maxZ, wz + drag.dz)).toFixed(2);
+  renderSel(); commit();
+});
+cv.addEventListener('pointerup', () => { if (drag){ drag = null; commit(true); } });
+$('#addWp').onclick = () => { addMode = true; $('#mapHint').textContent = '在地圖上點一下，放新的站位'; };
+function renderSel(){
+  const box = $('#selEdit'), L = Lay();
+  if (!L || !selected){ box.innerHTML = '<span class="muted">點地圖上的東西可以調整；每個場景的互動配置各存一份</span>'; return; }
+  if (selected.kind === 'wall' || selected.kind === 'slates'){
+    const o = L[selected.kind], name = selected.kind === 'wall' ? '學習牆' : '場記區';
+    const deg = Math.round(o.ry * 180 / Math.PI);
+    box.innerHTML = `<b style="font-weight:400">${name}</b><span class="muted">x ${o.x}　z ${o.z}</span>
+      <label>朝向 <input type="range" id="rot" min="-180" max="180" value="${deg}"></label><span id="rotV" class="muted">${deg}°</span>
+      <button class="btn small" id="look">在棚內看看</button>`;
+    $('#rot').oninput = (e) => { o.ry = +(e.target.value * Math.PI / 180).toFixed(3); $('#rotV').textContent = e.target.value + '°'; commit(); };
+    $('#look').onclick = () => bus.postMessage({type:'shot', shot:selected.kind});
+    return;
+  }
+  const p = L.waypoints.find(w => w.id === selected.id);
+  if (!p){ selected = null; return renderSel(); }
+  box.innerHTML = `<input type="text" id="wpName" value="${esc(p.name)}" aria-label="站位名稱"><span class="muted">x ${p.x}　z ${p.z}</span>
+    <button class="btn small" id="wpGo">叫茲白走過去</button>${p.id === 'home' ? '<span class="muted">（茲白的家，不能刪）</span>' : '<button class="btn soft small" id="wpDel">刪除站位</button>'}`;
+  $('#wpName').oninput = (e) => { p.name = e.target.value; commit(); };
+  $('#wpName').onchange = () => renderAll();
+  $('#wpGo').onclick = () => bus.postMessage({type:'run', steps:[{do:'walk', to:p.id}, {do:'face', to:'camera'}]});
+  $('#wpDel') && ($('#wpDel').onclick = () => {
+    const used = JSON.stringify([cfg.idle.beats, cfg.reactions]).includes(`"${p.id}"`);
+    if (used && !confirm(`還有步驟用到「${p.name}」，刪掉後那些步驟會被略過。確定刪除？`)) return;
+    L.waypoints = L.waypoints.filter(w => w !== p); selected = null; commit(true);
+  });
+}
+
+/* ───────── 場景清單 ───────── */
+async function loadSceneList(){
+  try{ scenes = await (await fetch('./scenes/index.json', {cache:'no-store'})).json(); }catch{ scenes = []; }
+  const sel = $('#sceneSel');
+  sel.innerHTML = scenes.length ? scenes.map(x => `<option value="${esc(x.id)}"${x.id === cfg.scene ? ' selected' : ''}>${esc(x.name)}${x.version ? ' v' + esc(x.version) : ''}</option>`).join('')
+    : '<option>scenes/ 裡沒有場景包</option>';
+}
+$('#sceneSel').onchange = (e) => { cfg.scene = e.target.value; selected = null; fit(); commit(true); toast('棚內預覽換場景中…'); };
+
+/* ───────── 步驟編輯器 ───────── */
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const opt = (v, label, cur) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(label)}</option>`;
+function actionOptions(cur){
+  return `<optgroup label="內建">${Object.entries(ACTIONS).map(([k, a]) => opt(k, a.name, cur)).join('')}</optgroup>` +
+    (vrmaNames.length ? `<optgroup label="VRMA">${vrmaNames.map(n => opt('vrma:' + n, n, cur)).join('')}</optgroup>` : '');
+}
+function params(s){
+  const wps = (Lay()?.waypoints || []).map(w => opt(w.id, w.name, s.to)).join('');
+  switch (s.do){
+    case 'walk': return `<select data-k="to">${wps}${opt('event', '觸發的物件旁', s.to)}</select>`;
+    case 'face': return `<select data-k="to">${Object.entries(LOOK_TARGETS).map(([k, v]) => opt(k, v, s.to)).join('')}<optgroup label="站位">${wps}</optgroup></select>`;
+    case 'act': return `<select data-k="action">${actionOptions(s.action)}</select><input type="number" data-k="times" min="1" max="9" value="${s.times || 1}" title="次數">`;
+    case 'say': return `<input data-k="text" value="${esc(s.text)}" placeholder="用｜分隔多句會隨機挑；{nick} 換成暱稱">`;
+    case 'expr': return `<select data-k="name">${Object.entries(EXPRESSIONS).map(([k, v]) => opt(k, v, s.name)).join('')}</select>`;
+    case 'wait': return `<input type="number" data-k="sec" min="0.2" step="0.5" value="${s.sec ?? 1}"><span class="muted" style="align-self:center">秒</span>`;
+  }
+  return '';
+}
+const DEFAULT_STEP = {walk:{to:'home'}, face:{to:'camera'}, act:{action:'wave'}, say:{text:'嗨～'}, expr:{name:'happy'}, wait:{sec:1}};
+function stepsEditor(steps, seqName, simulateEvent){
+  const box = document.createElement('div');
+  box.dataset.seqname = seqName;
+  const list = document.createElement('div'); list.className = 'steps'; box.appendChild(list);
+  const draw = () => {
+    list.innerHTML = '';
+    steps.forEach((s, i) => {
+      const row = document.createElement('div'); row.className = 'step';
+      row.innerHTML = `<span class="n">${i + 1}</span>
+        <select class="t" aria-label="步驟類型">${Object.entries(STEP_TYPES).map(([k, v]) => opt(k, v, s.do)).join('')}</select>
+        <div class="p">${params(s)}</div>
+        <div class="ops"><button title="上移" data-op="up">↑</button><button title="下移" data-op="down">↓</button><button title="刪除" data-op="del">✕</button></div>`;
+      row.querySelector('.t').onchange = (e) => { steps[i] = {do:e.target.value, ...DEFAULT_STEP[e.target.value]}; draw(); commit(); };
+      row.querySelectorAll('[data-k]').forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
+        const k = el.dataset.k; s[k] = el.type === 'number' ? Number(el.value) : el.value; commit();
+      }));
+      row.querySelectorAll('[data-op]').forEach(b => b.onclick = () => {
+        const op = b.dataset.op;
+        if (op === 'del') steps.splice(i, 1);
+        if (op === 'up' && i > 0) [steps[i - 1], steps[i]] = [steps[i], steps[i - 1]];
+        if (op === 'down' && i < steps.length - 1) [steps[i + 1], steps[i]] = [steps[i], steps[i + 1]];
+        draw(); commit();
+      });
+      list.appendChild(row);
+    });
+  };
+  draw();
+  const btns = document.createElement('div'); btns.className = 'rowBtns';
+  btns.innerHTML = `<button class="btn soft small" data-a="add">＋ 加一步</button><button class="btn amber small" data-a="run">在棚內預演</button>`;
+  btns.querySelector('[data-a=add]').onclick = () => { steps.push({do:'act', action:'nod'}); draw(); commit(); };
+  btns.querySelector('[data-a=run]').onclick = () => {
+    if (!$('#conn').classList.contains('on')) toast('先開啟棚內預覽');
+    if (simulateEvent) bus.postMessage({type:'simulate', event:simulateEvent});
+    else bus.postMessage({type:'run', steps});
+  };
+  box.appendChild(btns);
+  return box;
+}
+
+/* ───────── 待機行程 ───────── */
+function renderIdle(){
+  $('#gapA').value = cfg.idle.gap[0]; $('#gapB').value = cfg.idle.gap[1];
+  const box = $('#beats'); box.innerHTML = '';
+  const total = cfg.idle.beats.reduce((s, b) => s + (b.weight || 1), 0);
+  cfg.idle.beats.forEach((b, i) => {
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = `<div class="cardHead"><input class="name" value="${esc(b.name)}" aria-label="行程名稱">
+      <label class="weight">機率 <select>${[1,2,3,4,5].map(n => opt(String(n), '●'.repeat(n), String(b.weight || 1))).join('')}</select></label>
+      <span class="pct">${Math.round((b.weight || 1) / total * 100)}%</span>
+      <button class="btn soft small" data-a="del">刪除</button></div>`;
+    card.querySelector('.name').oninput = (e) => { b.name = e.target.value; commit(); };
+    card.querySelector('select').onchange = (e) => { b.weight = Number(e.target.value); commit(); renderIdle(); };
+    card.querySelector('[data-a=del]').onclick = () => { if (confirm(`刪除「${b.name}」？`)){ cfg.idle.beats.splice(i, 1); commit(); renderIdle(); } };
+    card.appendChild(stepsEditor(b.steps, '待機：' + b.name));
+    box.appendChild(card);
+  });
+}
+$('#gapA').oninput = (e) => { cfg.idle.gap[0] = Math.max(0, Number(e.target.value)); commit(); };
+$('#gapB').oninput = (e) => { cfg.idle.gap[1] = Math.max(0, Number(e.target.value)); commit(); };
+$('#addBeat').onclick = () => { cfg.idle.beats.push({name:'新的行程', weight:1, steps:[{do:'act', action:'lookAround'}]}); commit(); renderIdle(); };
+
+/* ───────── 事件反應 ───────── */
+function renderReactions(){
+  const box = $('#reactions'); box.innerHTML = '';
+  for (const [ev, info] of Object.entries(EVENTS)){
+    cfg.reactions[ev] ??= [];
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = `<div class="cardHead"><h3>${info.name}</h3><span class="hint">${info.hint}</span></div>`;
+    card.appendChild(stepsEditor(cfg.reactions[ev], info.name, ev));
+    const note = document.createElement('p'); note.className = 'muted'; note.style.margin = '6px 0 0';
+    note.textContent = '清空步驟就代表茲白不理這個事件。預演時會拿棚裡最近一筆同類留言當觸發物件。';
+    card.appendChild(note);
+    box.appendChild(card);
+  }
+}
+
+/* ───────── 動作庫 ───────── */
+function renderLib(){
+  $('#builtin').innerHTML = Object.entries(ACTIONS).map(([k, a]) =>
+    `<div class="item"><b>${a.name}</b><span>${a.dur} 秒</span><div class="rowBtns"><button class="btn amber small" data-play="${k}">預演</button></div></div>`).join('');
+  $('#vrmaList').innerHTML = vrmaNames.length ? vrmaNames.map(n =>
+    `<div class="item"><b>${esc(n)}</b><span>VRMA</span><div class="rowBtns"><button class="btn amber small" data-play="vrma:${esc(n)}">預演</button><button class="btn soft small" data-del="${esc(n)}">刪除</button></div></div>`).join('')
+    : '<p class="muted">還沒有匯入任何 VRMA。</p>';
+  document.querySelectorAll('[data-play]').forEach(b => b.onclick = () => bus.postMessage({type:'run', steps:[{do:'face', to:'camera'}, {do:'act', action:b.dataset.play}]}));
+  document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    if (!confirm(`刪除動作「${b.dataset.del}」？用到它的步驟會被略過。`)) return;
+    await motionsDB.del(b.dataset.del); await refreshMotions(); bus.postMessage({type:'motions'});
+  });
+}
+async function refreshMotions(){ try{ vrmaNames = (await motionsDB.list()).sort(); }catch{ vrmaNames = []; } renderAll(); }
+async function importVrma(files){
+  let n = 0;
+  for (const f of files){
+    if (!/\.vrma$/i.test(f.name)) continue;
+    await motionsDB.put(f.name.replace(/\.vrma$/i, ''), await f.arrayBuffer()); n++;
+  }
+  if (!n){ toast('只能匯入 .vrma 檔'); return; }
+  await refreshMotions(); bus.postMessage({type:'motions'}); toast(`已匯入 ${n} 個動作`);
+}
+$('#vrmaFile').onchange = (e) => importVrma([...e.target.files]);
+const drop = $('#drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); importVrma([...e.dataTransfer.files]); });
+
+/* ───────── 匯入匯出 ───────── */
+$('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(cfg, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'zibai-behavior.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async (e) => {
+  try{
+    const c = JSON.parse(await e.target.files[0].text());
+    const m = migrate(c); if (!m) throw Error('格式不對');
+    cfg = m; commit(true); toast('已匯入劇本');
+  }catch(err){ toast('匯入失敗：' + err.message); }
+  e.target.value = '';
+};
+$('#resetBtn').onclick = () => { if (confirm('還原成預設劇本？所有場景的互動配置和行程都會被覆蓋（建議先匯出備份）。')){ cfg = structuredClone(DEFAULT_BEHAVIOR); commit(true); loadSceneList(); toast('已還原預設'); } };
+
+/* ───────── 分頁與啟動 ───────── */
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.pane').forEach(p => p.hidden = p.id !== 'pane-' + b.dataset.tab);
+});
+function renderAll(){ renderIdle(); renderReactions(); renderLib(); renderSel(); $('#charPath').value = cfg.character || ''; }
+addEventListener('resize', fit);
+$('#charPath').onchange = (e) => { cfg.character = e.target.value.trim(); commit(); toast('棚內預覽換角色中…'); };
+fit(); requestAnimationFrame(draw);
+refreshMotions(); loadSceneList();
+bus.postMessage({type:'config', config:cfg});
+setTimeout(() => bus.postMessage({type:'topdown?'}), 1200);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "loop": true,
+  "animated": true,
+  "reduced": true,
+  "off": true,
+  "ceilingOff": true,
+  "particles": 650
+}
