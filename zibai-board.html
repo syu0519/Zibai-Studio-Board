@@ -135,7 +135,10 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px soli
 #card p{font-family:var(--hand);font-size:16px;line-height:1.6;margin:0 0 10px}
 #card .fine{font-family:var(--ui);font-size:12px;opacity:.6}
 #enter{width:100%;margin-top:8px;background:var(--emerald);color:#fff}
-#loadState{font-size:12px;opacity:.6;margin-top:8px;text-align:center}
+#loadState{font-size:12px;opacity:.68;margin-top:8px;text-align:center;min-height:18px}
+#loadProgress{height:4px;margin-top:8px;border-radius:999px;background:rgba(31,42,38,.10);overflow:hidden;opacity:0;transition:opacity .25s}
+#loadProgress.on{opacity:1}
+#loadProgress i{display:block;width:0;height:100%;border-radius:inherit;background:var(--emerald);transition:width .18s ease}
 
 /* 茲白說話泡泡 */
 #bubble{position:fixed;left:0;top:0;z-index:4;max-width:220px;padding:8px 12px;border-radius:14px 14px 14px 3px;background:#fbefd9;
@@ -219,6 +222,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px soli
     <p class="fine">第一次進棚會把這個 LINE 帳號綁到你的社員身分，老師回覆你的問題時，我才能在 LINE 通知你。</p>
     <button class="btn" id="enter" disabled>正在搭棚…</button>
     <div id="loadState">載入攝影棚</div>
+    <div id="loadProgress" aria-hidden="true"><i></i></div>
   </div>
 </div>
 <div id="toast" class="tape"></div>
@@ -470,10 +474,16 @@ function placeSlate(g, k){
 let vrm = null, zibaiRoot = new THREE.Group();
 zibaiRoot.position.copy(STAGE); scene.add(zibaiRoot);
 const lookTarget = new THREE.Object3D(); scene.add(lookTarget);
-async function loadVRM(src){
+async function loadVRM(src, onProgress = null){
   const loader = new GLTFLoader(); loader.register(p => new VRMLoaderPlugin(p));
+  console.info('[Zibai] VRM loading:', src);
   try{
-    const gltf = await loader.loadAsync(src);
+    const gltf = await loader.loadAsync(src, (ev) => {
+      const total = Number(ev.total) || 0, loaded = Number(ev.loaded) || 0;
+      const ratio = total > 0 ? Math.min(1, loaded / total) : null;
+      onProgress?.({phase: ratio === 1 ? 'parse' : 'download', loaded, total, ratio});
+    });
+    onProgress?.({phase:'prepare', loaded:1, total:1, ratio:1});
     if (vrm){ zibaiRoot.remove(vrm.scene); VRMUtils.deepDispose(vrm.scene); }
     vrm = gltf.userData.vrm;
     VRMUtils.removeUnnecessaryVertices(gltf.scene);
@@ -484,9 +494,14 @@ async function loadVRM(src){
     zibaiRoot.add(vrm.scene);
     placeholder.visible = false;
     actor.attach(vrm);
+    onProgress?.({phase:'ready', loaded:1, total:1, ratio:1});
+    console.info('[Zibai] VRM ready:', src);
+    return true;
   }catch(e){
-    console.warn('VRM 載入失敗，用替身', e);
+    console.warn('[Zibai] VRM 載入失敗，用替身', e);
     placeholder.visible = true;
+    onProgress?.({phase:'error', error:e});
+    return false;
   }
 }
 const placeholder = new THREE.Mesh(new THREE.CapsuleGeometry(.22, 1.1, 8, 16), new THREE.MeshStandardMaterial({color:0xdfe6e2, roughness:.5}));
@@ -1170,20 +1185,53 @@ function frame(){
 }
 
 /* ───────── 啟動 ───────── */
+function setBootProgress(pct, text){
+  const box = $('#loadProgress'), bar = $('#loadProgress i');
+  if (text != null) $('#loadState').textContent = text;
+  if (pct == null){ box.classList.remove('on'); bar.style.width = '0%'; return; }
+  box.classList.add('on'); bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+function prettyBytes(n){
+  if (!Number.isFinite(n) || n <= 0) return '';
+  return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+}
 async function boot(){
   const allText = DATA.map(d => d.text + (d.nick || '')).join('') + '問題發問學習牆只給老師看匿名— Q0123456789/:';
-  $('#loadState').textContent = '載入攝影棚與字型';
+  setBootProgress(8, '載入攝影棚與字型');
   await Promise.all([loadSceneLayer(qs.get('scene') || behavior.scene), fontsReady(allText)]);
   buildAll();
   moodMix.copy(moodMixTarget);
   camera.lookAt(controls.target);
   requestAnimationFrame(frame);
-  $('#loadState').textContent = '請茲白就位';
-  await loadVRM(characterUrl = characterOf());
-  $('#loadState').textContent = vrm ? '' : `找不到 ${characterUrl}，先用替身（可以把 .vrm 拖進畫面）`;
+
+  // 場景完成就先開門，不再讓大型 VRM 阻塞整個進棚流程。
   $('#enter').disabled = false; $('#enter').textContent = '進棚';
-  await reloadMotions();
+  setBootProgress(38, '攝影棚完成，茲白正在背景就位…');
   if (DIRECTOR) $('#enter').click();
+
+  // 動作庫與 VRM 都在背景載入；角色尚未完成時先顯示替身。
+  reloadMotions().catch(e => console.warn('[Zibai] 動作庫載入失敗', e));
+  characterUrl = characterOf();
+  loadVRM(characterUrl, ({phase, loaded, total, ratio}) => {
+    if (phase === 'download'){
+      if (ratio != null){
+        const pct = 40 + Math.round(ratio * 48);
+        const size = total ? ` · ${prettyBytes(loaded)} / ${prettyBytes(total)}` : '';
+        setBootProgress(pct, `正在下載茲白 ${Math.round(ratio * 100)}%${size}`);
+      } else {
+        setBootProgress(55, `正在下載茲白… ${prettyBytes(loaded)}`);
+      }
+    } else if (phase === 'parse'){
+      setBootProgress(90, '下載完成，正在解析茲白…');
+    } else if (phase === 'prepare'){
+      setBootProgress(95, '正在建立角色骨架與材質…');
+    } else if (phase === 'ready'){
+      setBootProgress(100, '茲白就位 ✓');
+      setTimeout(() => setBootProgress(null, ''), 1200);
+    } else if (phase === 'error'){
+      setBootProgress(null, `茲白暫時沒趕上，先用替身（可稍後重新載入 .vrm）`);
+    }
+  });
 }
 $('#enter').onclick = () => {
   $('#splash').classList.add('gone'); state.entered = true;
